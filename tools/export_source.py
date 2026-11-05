@@ -7,10 +7,14 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import stat
 import zipfile
 
 from check_repo_hygiene import check_repository
+
+
+# Archive permissions are part of the release, not the exporting host's modes.
+# Windows does not retain POSIX execute bits, and source ZIPs need no Git index.
+EXECUTABLE_SOURCE = frozenset({"Open Phone Lab.command", "run.command", "setup.command"})
 
 
 def project_version(root: Path) -> str:
@@ -48,7 +52,7 @@ def export_source(root: Path, output: Path | None = None, *, overwrite: bool = F
             for path in paths:
                 relative = path.relative_to(root).as_posix()
                 payload = path.read_bytes()
-                mode = 0o100755 if path.stat().st_mode & stat.S_IXUSR else 0o100644
+                mode = 0o100755 if relative in EXECUTABLE_SOURCE else 0o100644
                 info = zipfile.ZipInfo(f"{prefix}/{relative}", date_time=(2000, 1, 1, 0, 0, 0))
                 info.create_system = 3
                 info.external_attr = mode << 16

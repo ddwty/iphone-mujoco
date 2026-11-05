@@ -21,11 +21,14 @@ def _write(root, name, value="local data"):
 
 def test_clean_export_keeps_only_authored_source_and_preserves_local_data(tmp_path):
     _write(tmp_path, "pyproject.toml", '[project]\nname="iphone-mujoco"\nversion="0.3.0"\n')
-    _write(tmp_path, "README.md", "# Public source\n")
+    _write(tmp_path, "README.md", "# Public source\n").chmod(0o755)
     _write(tmp_path, "LICENSE", "MIT\n")
     _write(tmp_path, "src/iphone_mujoco/__init__.py", '__version__="0.3.0"\n')
     _write(tmp_path, "src/iphone_mujoco/assets/iphone.xml", "<mujocoinclude/>\n")
-    _write(tmp_path, "Open Phone Lab.command", "#!/bin/bash\nexit 0\n").chmod(0o755)
+    launchers = ("Open Phone Lab.command", "run.command", "setup.command")
+    for name in launchers:
+        # Match a Windows checkout, which does not retain POSIX execute bits.
+        _write(tmp_path, name, "#!/bin/bash\nexit 0\n").chmod(0o644)
     private = ["profiles/device.json", "recordings/private/frame.json", "validation/report.json",
                ".venv/lib/device.py", ".cache/model.xml", "scenes/generated.xml",
                "src/iphone_mujoco.egg-info/PKG-INFO", "src/iphone_mujoco/__pycache__/cache.pyc"]
@@ -34,11 +37,23 @@ def test_clean_export_keeps_only_authored_source_and_preserves_local_data(tmp_pa
     archive, manifest_path = export_source(tmp_path)
     with zipfile.ZipFile(archive) as bundle:
         entries = bundle.namelist()
-        assert len(entries) == 6
+        assert len(entries) == 8
         assert all(not any(part in entry.split("/") for part in ("profiles", "recordings", "validation", ".cache", ".venv")) for entry in entries)
-        assert bundle.getinfo("iphone-mujoco-0.3.0/Open Phone Lab.command").external_attr >> 16 & 0o111
+        for name in launchers:
+            info = bundle.getinfo(f"iphone-mujoco-0.3.0/{name}")
+            assert info.create_system == 3 and info.external_attr >> 16 == 0o100755
+        assert bundle.getinfo("iphone-mujoco-0.3.0/README.md").external_attr >> 16 == 0o100644
     manifest = json.loads(manifest_path.read_text())
-    assert manifest["file_count"] == 6 and len(manifest["archive_sha256"]) == 64
+    assert manifest["file_count"] == 8 and len(manifest["archive_sha256"]) == 64
+    assert {item["path"]: item["mode"] for item in manifest["files"] if item["path"] in launchers} == {
+        name: "0o100755" for name in launchers
+    }
+    # Different checkout permissions must produce the same portable ZIP bytes.
+    for name in launchers:
+        (tmp_path / name).chmod(0o755)
+    (tmp_path / "README.md").chmod(0o644)
+    second_archive, _ = export_source(tmp_path, tmp_path / "dist" / "second.zip")
+    assert second_archive.read_bytes() == archive.read_bytes()
     assert all((tmp_path / name).read_text() == "local data" for name in private)
 
 
