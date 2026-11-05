@@ -1,4 +1,6 @@
 """Create the same RGBDFrame API without a physical phone."""
+from pathlib import Path
+
 from iphone_mujoco import MujocoRGBDCamera, phone_mjcf
 from iphone_mujoco.cli import demo_calibration, look_at
 from iphone_mujoco.robots import load_scene
@@ -8,5 +10,7 @@ model, data, spec = load_scene("reference6", phone_xml=phone_mjcf(k))
 with MujocoRGBDCamera(model, k) as camera:
     camera.set_world_pose(data, look_at(), move_body=True)
     frame = camera.render(data)
-    frame.point_cloud(stride=4).save_ply("camera_points.ply")
+    output = Path("recordings/virtual-camera")
+    output.mkdir(parents=True, exist_ok=True)
+    frame.point_cloud(stride=4).save_ply(output / "camera_points.ply")
     print(frame.rgb.shape, frame.depth_m.shape)

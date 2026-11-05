@@ -1,7 +1,7 @@
-include LICENSE README.md README.zh-CN.md README.en.md
-include CONTRIBUTING.md CHANGELOG.md SECURITY.md THIRD_PARTY_NOTICES.md CITATION.cff
+include LICENSE README.md README.zh-CN.md THIRD_PARTY_NOTICES.md
+include .github/CONTRIBUTING.md .github/SECURITY.md
 include .gitignore .gitattributes .editorconfig
-include *.command run_iphone.py
+include *.command
 recursive-include docs *.md *.svg *.png *.jpg *.webp
 recursive-include examples *.py *.json *.xml
 recursive-include tools *.py
@@ -15,5 +15,5 @@ prune .venv
 prune .cache
 prune dist
 prune build
-exclude VALIDATION.md MUJOCO_LOG.TXT .DS_Store
+exclude AGENTS.md VALIDATION.md MUJOCO_LOG.TXT .DS_Store
 global-exclude __pycache__ *.py[cod] .DS_Store

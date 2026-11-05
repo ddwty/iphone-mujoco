@@ -1,4 +1,4 @@
-"""Load an adapter for your own position-actuated MJCF; see docs/extending.md."""
+"""Load an adapter for your own position-actuated MJCF; see docs/development.md."""
 import argparse
 from iphone_mujoco.control import CartesianTeleoperator
 from iphone_mujoco.robots import RobotSpec, load_scene

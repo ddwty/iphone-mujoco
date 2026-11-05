@@ -14,9 +14,11 @@
 
 ## 新下载项目后如何启动
 
-Python 3.10 及以上，在项目根目录运行：
+Python 3.10 及以上，获取源码并安装：
 
 ```bash
+git clone https://github.com/ddwty/iphone-mujoco.git
+cd iphone-mujoco
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
@@ -146,10 +148,9 @@ LiDAR 噪声/置信度、曝光和滚动快门仍需测量或建模。控制器�
 ## 开源开发
 
 - [实验台与相机导入](docs/phone-lab.md) · [腕部数据](docs/wrist-rgbd.md)
-- [架构与契约](docs/architecture.md) · [机器人适配](docs/extending.md)
-- [协议核对](docs/protocol-audit.md) · [路线图](docs/roadmap.md)
-- [贡献指南](CONTRIBUTING.md) · [安全说明](SECURITY.md) · [发布流程](docs/releasing.md)
-- [更新记录](CHANGELOG.md) · [MIT 许可证](LICENSE)
+- [开发与数据约定](docs/development.md)
+- [贡献指南](.github/CONTRIBUTING.md) · [安全说明](.github/SECURITY.md)
+- [发布版本](https://github.com/ddwty/iphone-mujoco/releases) · [MIT 许可证](LICENSE)
 
 公开源码不应包含个人标定、拍摄内容、录制轨迹、模型缓存和本机验证输出。
 按改动范围验证并报告实际结果；CI、离线 fixture 和构建不能作为真实设备精度、

@@ -18,9 +18,11 @@ occluder. Measured intrinsics can replace the labeled synthetic example.
 
 ## Quick start
 
-From a fresh source checkout, with Python 3.10 or newer:
+With Python 3.10 or newer, get the source and install:
 
 ```bash
+git clone https://github.com/ddwty/iphone-mujoco.git
+cd iphone-mujoco
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
@@ -160,10 +162,9 @@ substantial dynamic target residuals; precision teleoperation is not validated.
 ## Documentation and development
 
 - [Lab and camera import](docs/phone-lab.md) · [Wrist datasets](docs/wrist-rgbd.md)
-- [Architecture and contracts](docs/architecture.md) · [Robot adapters](docs/extending.md)
-- [Protocol audit](docs/protocol-audit.md) · [Roadmap](docs/roadmap.md)
-- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Releasing](docs/releasing.md)
-- [Changelog](CHANGELOG.md) · [MIT license](LICENSE)
+- [Development and data contracts](docs/development.md)
+- [Contributing](.github/CONTRIBUTING.md) · [Security](.github/SECURITY.md)
+- [Releases](https://github.com/ddwty/iphone-mujoco/releases) · [MIT license](LICENSE)
 
 Keep recordings, private calibration/provenance, downloaded models, caches and
 local validation output out of tracked source. Tests and GitHub workflows are

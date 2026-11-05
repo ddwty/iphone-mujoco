@@ -18,11 +18,9 @@ from typing import Iterable
 
 
 ROOT_FILES = frozenset({
-    "LICENSE", "NOTICE", "CITATION.cff", "README.md", "README.zh-CN.md", "README.en.md",
-    "CONTRIBUTING.md", "CHANGELOG.md", "SECURITY.md", "CODE_OF_CONDUCT.md",
-    "THIRD_PARTY_NOTICES.md", "AGENTS.md", "pyproject.toml", "MANIFEST.in",
-    ".gitignore", ".gitattributes", ".editorconfig", ".env.example",
-    "setup.command", "run.command", "Open Phone Lab.command", "run_iphone.py",
+    "LICENSE", "README.md", "README.zh-CN.md", "THIRD_PARTY_NOTICES.md",
+    "pyproject.toml", "MANIFEST.in", ".gitignore", ".gitattributes", ".editorconfig",
+    "setup.command", "run.command", "Open Phone Lab.command",
 })
 DIRECTORY_SUFFIXES = {
     "src": {".py", ".typed", ".xml", ".json"},

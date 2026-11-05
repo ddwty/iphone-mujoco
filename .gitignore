@@ -20,6 +20,7 @@ htmlcov/
 /profiles/
 /scenes/
 MUJOCO_LOG.TXT
+*.log
 
 # Local credentials and editor/OS state
 .env
@@ -37,3 +38,6 @@ MUJOCO_LOG.TXT
 
 # Private workbench report retained locally; publish reproducible docs instead
 /VALIDATION.md
+
+# Local assistant guidance is not part of the public toolkit
+/AGENTS.md

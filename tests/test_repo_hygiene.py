@@ -69,6 +69,8 @@ def test_source_findings_report_location_without_sensitive_value(tmp_path):
     assert all("examples/config.py:" in finding.display() for finding in findings)
     assert not is_public_path("profiles/phone.json")
     assert not is_public_path("src/copied_sdk/phone_pb2.py")
+    assert not is_public_path("AGENTS.md")
+    assert not is_public_path("MUJOCO_LOG.TXT")
 
 
 def test_staged_check_reads_index_and_rejects_force_added_recording(tmp_path):
