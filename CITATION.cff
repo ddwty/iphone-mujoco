@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software in research, cite the version and commit used."
+type: software
+title: "iPhone MuJoCo"
+version: 0.3.0
+authors:
+  - name: "iPhone MuJoCo contributors"
+license: MIT
+repository-code: "https://github.com/ddwty/iphone-mujoco"

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "package_version": "0.3.0",
+  "transport_provider": "PyPI asmagic >=1.0.1,<2",
+  "implemented": [
+    "live_rgbd",
+    "runtime_camera_intrinsics",
+    "point_cloud",
+    "mujoco_camera",
+    "relative_pose_teleoperation",
+    "gripper",
+    "bounded_cartesian_ik",
+    "record_replay",
+    "virtual_phone_camera_protocol",
+    "custom_mjcf_robot_adapter",
+    "rigid_wrist_rgbd_camera",
+    "synchronized_rgbd_robot_dataset",
+    "visible_iphone_camera_module",
+    "native_rgbd_camera_lab",
+    "portable_mjcf_lab_export",
+    "offline_episode_inspection",
+    "clean_source_export",
+    "legacy_import_identity_compatibility"
+  ],
+  "robots": [
+    "reference6",
+    "reference7",
+    "ur5e",
+    "panda"
+  ],
+  "unimplemented": [
+    "imu_simulation",
+    "hand_retargeting",
+    "body_retargeting",
+    "face_retargeting",
+    "ros2",
+    "hardware_robot_control",
+    "collision_avoidance",
+    "phone_video_return",
+    "lidar_noise",
+    "rolling_shutter",
+    "arkit_tracking_error"
+  ],
+  "unknown_without_measurement": [
+    "phone_body_dimensions",
+    "phone_mass_inertia",
+    "camera_to_body_mount",
+    "lens_distortion",
+    "rgb_depth_extrinsics"
+  ],
+  "camera_model": "ideal_pinhole_registered_optical_axis_depth",
+  "default_phone_appearance": "approximate_visual_only_collision_disabled",
+  "physical_iphone_validation": {
+    "camera": "71 paired frames; 590 packets; 2026-10-23",
+    "teleoperation": "live Panda and UR5e follow/clutch cycles verified",
+    "precision_tracking": "not validated; substantial dynamic target residuals",
+    "physical_sensor_model": "ideal only; hardware effects unimplemented"
+  }
+}

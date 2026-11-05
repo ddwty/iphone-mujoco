@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible camera, model, recording or installation problem.
+labels: [bug]
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, package version and output of iphone-mujoco doctor. Remove private paths and addresses.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal command or public synthetic scene that reproduces the issue. Do not upload private recordings or credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+      description: Include the exact error and whether the source was simulation, local loopback or a physical iPhone.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Safe diagnostics
+      description: Sanitized logs or synthetic images. For security issues, follow SECURITY.md instead of posting details here.

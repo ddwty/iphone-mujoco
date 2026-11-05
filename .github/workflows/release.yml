@@ -1,0 +1,48 @@
+name: Release artifacts
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  distributions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Confirm release tag matches project version
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          if os.environ["RELEASE_TAG"] != "v" + version:
+              raise SystemExit("Release tag must equal v + the project version")
+          PY
+      - name: Check and build release files
+        run: |
+          python tools/check_repo_hygiene.py --mode tracked
+          python -m pip install --upgrade build
+          python -m build
+          python tools/export_source.py
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          files = sorted(path for path in Path("dist").iterdir() if path.suffix in {".whl", ".gz", ".zip"})
+          Path("dist/SHA256SUMS").write_text("".join(hashlib.sha256(path.read_bytes()).hexdigest() + "  " + path.name + "\n" for path in files))
+          PY
+      - name: Attach files to the existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$RELEASE_TAG" dist/*.whl dist/*.tar.gz dist/*.zip dist/*.manifest.json dist/SHA256SUMS

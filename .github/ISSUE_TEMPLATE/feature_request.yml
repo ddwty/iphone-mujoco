@@ -1,0 +1,17 @@
+name: Feature or adapter request
+description: Propose a concrete experiment, robot adapter or workflow improvement.
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: Experiment or workflow
+      description: What should someone be able to do, and what currently blocks it?
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Inputs, outputs and acceptance check
+      description: Describe expected data, coordinate frames and units, and a small measurable check. Link public model/source licenses where relevant.
+    validations:
+      required: true

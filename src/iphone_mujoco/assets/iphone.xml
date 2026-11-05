@@ -1,0 +1,14 @@
+<mujocoinclude>
+  <!-- Generic APPROXIMATE visual rig. Dimensions and camera mount are unmeasured.
+       No factory iPhone calibration, collision model, mass or inertia is claimed.
+       Replace K at runtime using apply_calibration or generate phone_mjcf(profile.calibration).
+       Include this file inside <worldbody>. All distances are meters. -->
+  <body name="iphone">
+    <geom name="iphone_shell" type="box" size="0.038 0.075 0.004" rgba="0.12 0.13 0.15 1" density="0" contype="0" conaffinity="0" group="2"/>
+    <geom name="iphone_screen" type="box" pos="0 0 0.0041" size="0.035 0.071 0.0002" rgba="0.025 0.04 0.065 1" density="0" contype="0" conaffinity="0" group="2"/>
+    <geom name="iphone_lens" type="cylinder" pos="0.020 0.052 -0.0048" size="0.006 0.001" rgba="0.05 0.13 0.23 1" density="0" contype="0" conaffinity="0" group="2"/>
+    <!-- SYNTHETIC K: fx=fy=544, cx=319.5, cy=239.5 at 640x480. -->
+    <camera name="iphone_camera" mode="fixed" pos="0.020 0.052 -0.005" sensorsize="640 480" resolution="640 480" focalpixel="544 544" principalpixel="0 0"/>
+    <site name="iphone_optical_center" pos="0.020 0.052 -0.005" size="0.003" rgba="0.1 0.8 1 0.4" group="3"/>
+  </body>
+</mujocoinclude>

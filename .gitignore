@@ -1,0 +1,39 @@
+# Local environments, dependency caches, and generated Python metadata
+.venv/
+venv/
+env/
+.cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Build/release products and local experiment evidence
+/build/
+/dist/
+/validation/
+/recordings/
+/profiles/
+/scenes/
+MUJOCO_LOG.TXT
+
+# Local credentials and editor/OS state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Private workbench report retained locally; publish reproducible docs instead
+/VALIDATION.md

@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Wheel contracts (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.10'
+          - os: ubuntu-latest
+            python: '3.12'
+          - os: macos-latest
+            python: '3.12'
+          - os: windows-latest
+            python: '3.12'
+    env:
+      IPHONE_MUJOCO_TEST_RENDER: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check public source boundary
+        run: python tools/check_repo_hygiene.py --mode tracked
+      - name: Build and install the distribution
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+          python -m pip install dist/*.whl pytest
+      - name: Verify installed wheel and selected contracts
+        run: |
+          python -c "import iphone_mujoco; assert 'site-packages' in iphone_mujoco.__file__, iphone_mujoco.__file__"
+          iphone-mujoco doctor
+          python -m pytest -q tests/test_camera.py tests/test_phone_lab.py tests/test_wrist.py tests/test_repo_hygiene.py tests/test_cli_contracts.py tests/test_compatibility.py tests/test_control.py::test_clutch_stale_session_and_rezero_reanchor_without_jump tests/test_streams.py::test_episode_roundtrip_preserves_provenance_without_pickle tests/test_streams.py::test_rgbd_episode_preserves_calibration_confidence_and_pixel_data
+      - name: Check clean source export
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        run: python tools/export_source.py --output "$RUNNER_TEMP/iphone-mujoco-source.zip"
+      - name: Check optional pip SDK wire compatibility
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        run: |
+          wheel_path="$(python -c 'import glob; print(glob.glob("dist/*.whl")[0])')"
+          python -m pip install "${wheel_path}[live]"
+          python -c "import asmagic; assert 'site-packages' in asmagic.__file__, asmagic.__file__"
+          python -m pytest tests/test_virtual_device.py -q
+      - name: Retain distributions for graphics smoke
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+          retention-days: 7
+
+  graphics:
+    name: Linux software-rendered RGB-D smoke
+    needs: contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MUJOCO_GL: glfw
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist
+      - name: Install software OpenGL and the wheel
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libglfw3
+          python -m pip install dist/*.whl
+      - name: Render one synthetic camera observation
+        run: |
+          xvfb-run -a iphone-mujoco phone-lab --headless --output "$RUNNER_TEMP/phone-lab-smoke"
+          iphone-mujoco inspect-episode "$RUNNER_TEMP/phone-lab-smoke/capture-0000/episode" --json
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import numpy as np
+          from PIL import Image
+          root = Path(os.environ["RUNNER_TEMP"]) / "phone-lab-smoke/capture-0000"
+          rgb = np.asarray(Image.open(root / "rgb.png"))
+          raw = np.asarray(Image.open(root / "depth_uint16.png"))
+          depth = np.load(root / "depth_m.npy", allow_pickle=False)
+          assert rgb.shape == (480, 640, 3)
+          assert raw.shape == depth.shape == (192, 256)
+          assert np.any(raw > 0)
+          np.testing.assert_allclose(depth[raw > 0], raw[raw > 0] * .0001, atol=5e-7)
+          assert np.array_equal(np.isnan(depth), raw == 0)
+          PY
+      - name: Retain synthetic observation for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-rgbd-smoke
+          path: ${{ runner.temp }}/phone-lab-smoke
+          retention-days: 7

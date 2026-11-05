@@ -1,0 +1,132 @@
+{
+  "repository": "google-deepmind/mujoco_menagerie",
+  "commit": "cda5236f98383f6fbaa4820c6b18dba892cd087f",
+  "directory": "universal_robots_ur5e",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "size": 154,
+      "git_blob_sha1": "9fb3c15bda6aa86a68fd9b3a8883201fa0824ed7"
+    },
+    {
+      "path": "LICENSE",
+      "size": 1470,
+      "git_blob_sha1": "f24e07cb6524f2a5e42a466c27c655a9ceb674a6"
+    },
+    {
+      "path": "README.md",
+      "size": 1689,
+      "git_blob_sha1": "d73bd4ef1b74ad3ead04535a7d7a48a9fb0161fc"
+    },
+    {
+      "path": "assets/base_0.obj",
+      "size": 556543,
+      "git_blob_sha1": "25107a3de8af5d2441e6c580e689feb0d99e41c6"
+    },
+    {
+      "path": "assets/base_1.obj",
+      "size": 638415,
+      "git_blob_sha1": "5459fa5805d822ecec64ab62a7766aeda54ea0a3"
+    },
+    {
+      "path": "assets/forearm_0.obj",
+      "size": 1691648,
+      "git_blob_sha1": "22505187a49a0e828da529f8f69f15c6a2f1ca9c"
+    },
+    {
+      "path": "assets/forearm_1.obj",
+      "size": 76202,
+      "git_blob_sha1": "ddc95e33bd6fb941c22318a8a17518dfb3b7c1e6"
+    },
+    {
+      "path": "assets/forearm_2.obj",
+      "size": 932534,
+      "git_blob_sha1": "dc71f88f985cfb2cba78215681a7b4d1f4157a71"
+    },
+    {
+      "path": "assets/forearm_3.obj",
+      "size": 1095775,
+      "git_blob_sha1": "bade6fe9cc1875135c7f2336da6031e3d9bb0bed"
+    },
+    {
+      "path": "assets/shoulder_0.obj",
+      "size": 2947794,
+      "git_blob_sha1": "614ed810dde95952e568bf861934a3884e723446"
+    },
+    {
+      "path": "assets/shoulder_1.obj",
+      "size": 569646,
+      "git_blob_sha1": "02689aeb311772b90e6b8eeb084535dea2d5f992"
+    },
+    {
+      "path": "assets/shoulder_2.obj",
+      "size": 2440344,
+      "git_blob_sha1": "bd1b208f22c7f079a168562824ed42c44cf5b856"
+    },
+    {
+      "path": "assets/upperarm_0.obj",
+      "size": 156252,
+      "git_blob_sha1": "e0aaef2544745cfd7f45a96978ed2581bac83af4"
+    },
+    {
+      "path": "assets/upperarm_1.obj",
+      "size": 1090164,
+      "git_blob_sha1": "a7a93fbf51b1b8ca19316d5445e075286490ac26"
+    },
+    {
+      "path": "assets/upperarm_2.obj",
+      "size": 3677923,
+      "git_blob_sha1": "785a1c471e0eafb1a00e1d21dae5a48b1e8a4e07"
+    },
+    {
+      "path": "assets/upperarm_3.obj",
+      "size": 5346165,
+      "git_blob_sha1": "ec1021c45f4d89079d0b98b90755b09fddca196a"
+    },
+    {
+      "path": "assets/wrist1_0.obj",
+      "size": 278871,
+      "git_blob_sha1": "f3576facd2c19623352ee7aa700eb919394ae1d3"
+    },
+    {
+      "path": "assets/wrist1_1.obj",
+      "size": 2470967,
+      "git_blob_sha1": "d84fc9d4d9bdad6f14485820852e6f231cf4d803"
+    },
+    {
+      "path": "assets/wrist1_2.obj",
+      "size": 1657638,
+      "git_blob_sha1": "a44022198eacae682556fb14031e8c1f5f91d94d"
+    },
+    {
+      "path": "assets/wrist2_0.obj",
+      "size": 846741,
+      "git_blob_sha1": "068f5c00c047a021321427f25eea79a5689bfeac"
+    },
+    {
+      "path": "assets/wrist2_1.obj",
+      "size": 2156900,
+      "git_blob_sha1": "236cd7be295b0cf37114a4c875727c6ec9d2294c"
+    },
+    {
+      "path": "assets/wrist2_2.obj",
+      "size": 2141392,
+      "git_blob_sha1": "66872002fd7d3dd87ed680b6b9eff6eaf88b91af"
+    },
+    {
+      "path": "assets/wrist3.obj",
+      "size": 211390,
+      "git_blob_sha1": "8159d7d1d75cfe690cc666c641ecf8f2a19f87cd"
+    },
+    {
+      "path": "scene.xml",
+      "size": 817,
+      "git_blob_sha1": "2cc8689499f4f0c949b9596a1d57147197c7070b"
+    },
+    {
+      "path": "ur5e.xml",
+      "size": 6652,
+      "git_blob_sha1": "f4b1e50d0b61b326154993f2033fea92b6631ba0"
+    }
+  ]
+}

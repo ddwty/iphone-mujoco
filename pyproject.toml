@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iphone-mujoco"
+version = "0.3.0"
+description = "Reusable iPhone RGB-D camera modules, wrist datasets and robot experiments for MuJoCo"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{name = "iPhone MuJoCo contributors"}]
+dependencies = ["mujoco==3.5.0", "numpy>=1.24,<3", "Pillow>=10"]
+keywords = ["mujoco", "iphone", "rgbd", "robotics", "teleoperation", "camera"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+
+[project.optional-dependencies]
+live = ["asmagic>=1.0.1,<2", "pyzmq>=25"]
+dev = ["pytest>=8", "build>=1"]
+
+[project.scripts]
+iphone-mujoco = "iphone_mujoco.cli:main"
+# Compatibility only; the project/distribution and new examples use iphone-mujoco.
+asmagic-mujoco = "iphone_mujoco.cli:main"
+
+[project.urls]
+Repository = "https://github.com/ddwty/iphone-mujoco"
+Issues = "https://github.com/ddwty/iphone-mujoco/issues"
+Documentation = "https://github.com/ddwty/iphone-mujoco#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["iphone_mujoco*", "asmagic_mujoco*"]
+
+[tool.setuptools.package-data]
+iphone_mujoco = ["py.typed", "assets/**/*.xml", "assets/**/*.json", "assets/*.xml", "assets/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

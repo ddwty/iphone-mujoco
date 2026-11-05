@@ -1,0 +1,113 @@
+"""Portable iPhone modules and laboratory scenes; no OpenGL is required."""
+from pathlib import Path
+import shutil
+import xml.etree.ElementTree as ET
+
+import mujoco
+import numpy as np
+import pytest
+
+from iphone_mujoco.camera import CameraCalibration
+from iphone_mujoco.geometry import pose_from_xyzw
+from iphone_mujoco.phone_scene import export_phone_lab, load_phone_lab
+
+
+def _world_from_body(data, body_id):
+    pose = np.eye(4)
+    pose[:3, :3] = data.xmat[body_id].reshape(3, 3)
+    pose[:3, 3] = data.xpos[body_id]
+    return pose
+
+
+def _world_from_mujoco_camera(data, camera_id):
+    pose = np.eye(4)
+    pose[:3, :3] = data.cam_xmat[camera_id].reshape(3, 3)
+    pose[:3, 3] = data.cam_xpos[camera_id]
+    return pose
+
+
+def test_phone_module_export_works_under_another_body_and_preserves_existing_files(tmp_path):
+    from iphone_mujoco.profiles import write_phone_module
+
+    calibration = CameraCalibration(160, 120, 149., 137., 76.2, 63.1, 80, 60)
+    local_pose = pose_from_xyzw([.12, -.04, .08, .1, -.2, .15, .95])
+    path = tmp_path / "phone_a.xml"
+    write_phone_module(path, calibration, body_name="phone_a", camera_name="camera_a",
+                       parent_from_body=local_pose)
+    sidecar = path.with_suffix(".calibration.json")
+    assert CameraCalibration.load(sidecar) == calibration
+    include = ET.parse(path).getroot()
+    assert include.tag == "mujocoinclude"
+    phone = include.find("body[@name='phone_a']")
+    assert phone is not None
+    camera = phone.find("camera[@name='camera_a']")
+    assert camera is not None
+    local_mount = np.eye(4)
+    local_mount[:3, 3] = np.fromstring(camera.get("pos", "0 0 0"), sep=" ")
+    quaternion = np.fromstring(camera.get("quat", "1 0 0 0"), sep=" ")
+    rotation = np.empty(9)
+    mujoco.mju_quat2Mat(rotation, quaternion)
+    local_mount[:3, :3] = rotation.reshape(3, 3)
+    scene = tmp_path / "host.xml"
+    scene.write_text('<mujoco><worldbody><body name="host" pos=".7 -.3 .4" '
+                     'quat=".9238795325 0 0 .3826834324"><include file="phone_a.xml"/>'
+                     '</body></worldbody></mujoco>')
+    model = mujoco.MjModel.from_xml_path(str(scene))
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    camera_id, host_id = model.camera("camera_a").id, model.body("host").id
+    expected = _world_from_body(data, host_id) @ local_pose @ local_mount
+    np.testing.assert_allclose(_world_from_mujoco_camera(data, camera_id), expected, atol=1e-9)
+    assert model.nmocap == 0
+    original_xml, original_json = path.read_bytes(), sidecar.read_bytes()
+    with pytest.raises(FileExistsError):
+        write_phone_module(path, calibration, body_name="replacement", camera_name="other")
+    assert path.read_bytes() == original_xml and sidecar.read_bytes() == original_json
+
+
+def test_phone_lab_has_visible_mocap_phone_and_requested_calibration():
+    calibration = CameraCalibration(320, 240, 298., 271., 145.2, 127.4, 128, 96)
+    model, data = load_phone_lab(calibration)
+    phone_id, camera_id = model.body("iphone").id, model.camera("iphone_camera").id
+    assert model.body_mocapid[phone_id] >= 0
+    assert model.cam_bodyid[camera_id] == phone_id
+    names = [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_CAMERA, index) for index in range(model.ncam)]
+    assert len(names) == len(set(names))
+    np.testing.assert_equal(model.cam_resolution[camera_id], [calibration.width, calibration.height])
+    np.testing.assert_allclose(model.cam_intrinsic[camera_id],
+                               [calibration.fx, calibration.fy,
+                                (calibration.width-1)/2-calibration.cx,
+                                calibration.cy-(calibration.height-1)/2], atol=1e-5)
+    options = mujoco.MjvOption()
+    phone_geoms = np.flatnonzero(model.geom_bodyid == phone_id)
+    assert len(phone_geoms) >= 3
+    assert np.all(options.geomgroup[model.geom_group[phone_geoms]] != 0)
+    assert np.all(model.geom_rgba[phone_geoms, 3] > 0)
+    assert np.all(model.geom_contype[phone_geoms] == 0)
+    np.testing.assert_allclose(data.cam_xpos[camera_id], [0., -.8, 1.05], atol=1e-8)
+
+
+def test_exported_phone_lab_compiles_after_relocation(tmp_path):
+    calibration = CameraCalibration(160, 120, 148., 152., 79.1, 58.7, 64, 48)
+    original = tmp_path / "original"
+    exported_scene = export_phone_lab(original, calibration)
+    assert Path(exported_scene) == original / "scene.xml"
+    assert CameraCalibration.load(original / "calibration.json") == calibration
+    moved = tmp_path / "elsewhere" / "downloaded_lab"
+    shutil.copytree(original, moved)
+    original.rename(tmp_path / "original_is_no_longer_at_export_path")
+    for path in moved.glob("*.xml"):
+        root = ET.parse(path).getroot()
+        for element in root.iter():
+            if "file" in element.attrib:
+                assert not Path(element.attrib["file"]).is_absolute()
+                assert (moved / element.attrib["file"]).is_file()
+            for value in element.attrib.values():
+                assert str(original) not in value
+    model = mujoco.MjModel.from_xml_path(str(moved / "scene.xml"))
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    assert model.body_mocapid[model.body("iphone").id] >= 0
+    camera_id = model.camera("iphone_camera").id
+    np.testing.assert_equal(model.cam_resolution[camera_id], [160, 120])
+    assert np.isfinite(data.cam_xpos[camera_id]).all()
