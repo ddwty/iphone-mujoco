@@ -1,4 +1,4 @@
-include LICENSE README.md README.zh-CN.md THIRD_PARTY_NOTICES.md
+include LICENSE README.md THIRD_PARTY_NOTICES.md
 include .github/CONTRIBUTING.md .github/SECURITY.md
 include .gitignore .gitattributes .editorconfig
 include *.command

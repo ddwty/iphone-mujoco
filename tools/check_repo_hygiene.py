@@ -18,7 +18,7 @@ from typing import Iterable
 
 
 ROOT_FILES = frozenset({
-    "LICENSE", "README.md", "README.zh-CN.md", "THIRD_PARTY_NOTICES.md",
+    "LICENSE", "README.md", "THIRD_PARTY_NOTICES.md",
     "pyproject.toml", "MANIFEST.in", ".gitignore", ".gitattributes", ".editorconfig",
     "setup.command", "run.command", "Open Phone Lab.command",
 })

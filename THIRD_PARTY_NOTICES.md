@@ -21,7 +21,6 @@ This source repository contains manifests, not the large vendor meshes. The
 downloaded model directories include the upstream LICENSE files. If you
 redistribute those assets, carry their notices and satisfy their licenses.
 
-The visible phone is original approximate primitive geometry, not an Apple CAD
-model. Runtime calibration from a user's own phone is not a universal factory
-calibration. The project is an independent community tool; use of product names
+The phone geometry is original work. The project is an independent community
+tool; use of product names
 does not imply endorsement by Apple, Google DeepMind, Franka or Universal Robots.

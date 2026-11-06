@@ -1,15 +1,15 @@
 # iPhone MuJoCo
 
-[简体中文](README.zh-CN.md) · [![CI](https://github.com/ddwty/iphone-mujoco/actions/workflows/ci.yml/badge.svg)](https://github.com/ddwty/iphone-mujoco/actions/workflows/ci.yml)
+[![CI](https://github.com/ddwty/iphone-mujoco/actions/workflows/ci.yml/badge.svg)](https://github.com/ddwty/iphone-mujoco/actions/workflows/ci.yml)
 
-Put a virtual iPhone on a table, a robot wrist or a moving platform and collect
-RGB-D, calibration, camera poses and replayable episodes. Connect a real iPhone
-through the existing PyPI `asmagic` SDK when your experiment needs live input.
+Use an iPhone camera module in MuJoCo scenes, on robot wrists and on mobile
+platforms. Record RGB-D, calibration and camera poses in replayable episodes.
+Real iPhone streams connect through the PyPI `asmagic` SDK.
 [Python SDK](https://pypi.org/project/asmagic/)
 
 [![MuJoCo phone laboratory with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
-## Start with an offline experiment
+## Installation
 
 Use Python 3.10 or newer to install from source.
 
@@ -40,16 +40,16 @@ scan, and press P to save RGB-D and point clouds. On macOS you can also open
 Rendering uses OpenGL. A headless Linux host needs a supported EGL driver or
 Xvfb/GLFW configuration. `--headless` still renders sensor images.
 
-## Choose a camera experiment
+## Camera experiments
 
-| Experiment | Camera placement | Useful output | Example use |
+| Experiment | Camera placement | Output | Use |
 |---|---|---|---|
 | Tabletop | External camera on a stand | RGB-D, K, optical pose, point clouds | Detection, depth geometry, occlusion and calibration pipelines |
 | Robot wrist | Rigidly attached to an arm link | RGB-D with same-state joints and controls | Eye-in-hand observations, trajectory datasets, visual-servo input |
 | Mobile platform | Camera attached to a scripted base | RGB-D, base/camera pose and simulation time | RGB-D odometry input, multiview fusion and viewpoint coverage |
-| Your MJCF | Camera attached to a named body | Same frame/episode API | Reuse an existing robot, room or task scene |
+| Custom MJCF | Camera attached to a named body | Same frame/episode API | Existing robot, room or task scenes |
 
-### External camera and tabletop data
+### Tabletop camera
 
 ![Camera laboratory with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
@@ -64,7 +64,7 @@ iphone-mujoco inspect-episode recordings/tabletop/episode --json
 Pass `--profile profiles/my-iphone.json` to use your device's intrinsics.
 The examples use the included camera profile by default.
 
-### A camera on a moving robot
+### Mobile camera
 
 ![Scripted mobile platform and its RGB-D camera](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
@@ -79,7 +79,7 @@ On macOS, replace `python` with `mjpython` for examples that open a viewer.
 The base follows a scripted path. The viewer shows RGB and depth beside the
 scene, and each frame records the base and camera poses.
 
-### Wrist cameras on different arms
+### Wrist cameras
 
 ![Mounted iPhone and wrist RGB-D on robot arms](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
 
@@ -90,8 +90,6 @@ scene, and each frame records the base and camera poses.
 | `panda` | Franka Emika Panda, 7 arm axes | `hand` | Parallel gripper |
 | `ur5e` | Universal Robots UR5e, 6 arm axes | `wrist_3_link` | Bare flange |
 
-Download Panda and collect a wrist-camera sequence.
-
 ```bash
 iphone-mujoco models --fetch panda
 iphone-mujoco export-lab --output recordings/demo-rig
@@ -100,8 +98,8 @@ mjpython -m iphone_mujoco capture-wrist --robot panda \
   --duration 5 --fps 10 --output recordings/wrist-panda
 ```
 
-Use `python -m iphone_mujoco` outside macOS. Select UR5e for a six-axis arm.
-Download each model once, then reuse its local cache for subsequent runs.
+Use `python -m iphone_mujoco` outside macOS. Models are cached after the first
+download.
 
 ```bash
 iphone-mujoco models --fetch ur5e
@@ -118,7 +116,7 @@ depth alongside the robot.
 Both arms use Google DeepMind's MuJoCo Menagerie models. Model sources and
 robot adapter details are in the developer guide. [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [Developer guide](docs/development.md)
 
-### Attach the camera to your own scene
+### Custom MJCF scenes
 
 Use an existing MJCF and a mount JSON describing the local optical-camera-to-parent
 transform.
@@ -133,14 +131,13 @@ python examples/scene_camera.py --scenario custom \
 Attach the camera to a robot flange, mobile base, head or static support using
 its body name. The camera guide includes a complete example and mount format. [Camera mounting guide](docs/phone-lab.md)
 
-For native MJCF reuse, export the module and include it under your selected
-`worldbody` or robot body.
+Export an MJCF include for a `worldbody` or robot body.
 
 ```bash
 iphone-mujoco export-phone --output recordings/iphone.xml
 ```
 
-## Use the recorded data
+## Read recordings
 
 Wrist collection writes RGB PNG, UInt16 depth PNG, calibration, mounting
 extrinsics, `states.jsonl`, a point-cloud preview and an `episode/` directory.
@@ -172,21 +169,21 @@ writes `points.ply`, frame provenance and a summary. See the wrist guide for
 dataset fields and depth PNG reading.
 [Wrist data guide](docs/wrist-rgbd.md)
 
-## Connect your real iPhone
+## iPhone connection
 
-Install the optional live dependencies and capture the current device K.
+In asMagic, open **Stream**, enable RGB/depth, choose **Y up** and disable
+custom coordinate adjustments. Then capture the device's camera intrinsics.
 
 ```bash
 python -m pip install -e '.[live]'
 iphone-mujoco calibrate --ip YOUR_IP --output profiles/my-iphone.json
 ```
 
-In asMagic open **Stream**, enable RGB/depth, choose **Y up** and disable custom
-coordinate adjustments. The app's Z-up preset uses `--pose-convention robotics`.
+The app's Z-up preset uses `--pose-convention robotics`.
 Reacquire calibration after changing capture settings.
 
-To control the simulated wrist camera, switch to **Robot control → Through Mac**
-and start sending. Release Square once after connecting, then hold it to move.
+For wrist-camera control, switch to **Robot control → Through Mac** and start
+sending. Release Square once after connecting, then hold it to move.
 
 ```bash
 mjpython -m iphone_mujoco capture-wrist --robot panda \
