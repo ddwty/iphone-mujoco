@@ -63,7 +63,7 @@ jobs:
           python -m pytest tests/test_virtual_device.py -q
       - name: Retain distributions for graphics smoke
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: distributions
           path: dist/
@@ -128,7 +128,7 @@ jobs:
           iphone-mujoco inspect-episode "$RUNNER_TEMP/custom-camera/episode" --json
       - name: Retain synthetic observation for review
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: synthetic-rgbd-smoke
           path: ${{ runner.temp }}/phone-lab-smoke
