@@ -1,8 +1,7 @@
 # Contributing
 
-Keep changes small and reproducible. Describe the observed problem, resulting
-behavior and checks actually run. Report skipped graphics/device checks and
-remaining limitations. Review [the data contracts](../docs/development.md)
+Describe the observed problem, resulting behavior and checks run.
+Review [the data contracts](../docs/development.md)
 before changing formats, frames, timing, controllers or SDK integration.
 
 ## Develop and check
@@ -31,19 +30,15 @@ Camera tests require a working graphics context and opt in:
 `IPHONE_MUJOCO_TEST_RENDER=1 python -m pytest tests/test_camera.py tests/test_wrist.py -q`.
 For a native-viewer smoke on macOS, use
 `mjpython tools/smoke_phone_lab.py --output recordings/gui-smoke` with a new
-output directory; it injects application commands, not physical keyboard input.
+output directory.
 Use `python` with an active graphics session on other platforms.
 
-Optional-model tests skip without their assets. SDK loopback requires live
-dependencies and local TCP access; it does not validate wireless delivery.
-Physical-device claims need separate device/settings, inputs, timestamps and
-results. Do not repeatedly run unrelated tests or infer hardware accuracy from
-a successful build. Installed-wheel contracts and a Linux software-rendered
+Download model assets before running their tests. SDK loopback requires live
+dependencies and local TCP access. For device integrations, record the device,
+settings, inputs, timestamps and results. Installed-wheel contracts and a Linux
 RGB-D smoke run in [CI](workflows/ci.yml).
 
-Regenerate the README animations from the actual simulator with a graphics
-context. Each GIF combines an overview, sensor RGB and a fixed-range depth
-preview. The default montage uses Franka Emika Panda and Universal Robots UR5e.
+Generate the README animations with a graphics context and the Panda/UR5e models.
 
 ```bash
 iphone-mujoco models --fetch panda
@@ -51,8 +46,7 @@ iphone-mujoco models --fetch ur5e
 python tools/render_readme_media.py --output recordings/readme-media
 ```
 
-The pinned model download retains upstream licenses and mesh files. Use
-`--robots panda` or `--robots ur5e` for a single-arm recording. Review media
+Use `--robots panda` or `--robots ur5e` for a single-arm recording. Review media
 before copying it into `docs/images/`. Keep each public image below the source
 export's 2 MB limit.
 

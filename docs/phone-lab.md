@@ -3,11 +3,13 @@
 虚拟 iPhone 包含可见手机外观、具名相机、RGB 内参和深度分辨率。
 MuJoCo 渲染场景，采集接口输出与真实 iPhone 适配器共用的 `RGBDFrame`。
 
-![相机实验台、RGB 与深度](images/phone-lab.gif)
+[![相机实验台、RGB 与深度](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
+
+[GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
 ## 打开实验台
 
-在已安装项目的根目录运行默认 synthetic 实验台。
+在项目根目录运行实验台。
 
 ```bash
 mjpython -m iphone_mujoco phone-lab
@@ -63,7 +65,7 @@ UInt16 可表示范围之外的深度按无返回处理，PNG 与米制数组使
 
 ## 连续采集固定相机或移动平台
 
-场景示例持续采集图像、状态和 episode，可作为算法输入序列。
+连续采集图像、位姿和场景状态。
 
 ```bash
 python examples/scene_camera.py --scenario tabletop \
@@ -72,13 +74,14 @@ python examples/scene_camera.py --scenario mobile \
   --headless --duration 6 --fps 10 --output recordings/mobile
 ```
 
-省略 `--headless` 打开查看器，macOS 使用 `mjpython`。两个场景默认使用 synthetic
-内参，可通过 `--profile` 指定自己的标定。
+省略 `--headless` 打开查看器，macOS 使用 `mjpython`。
+用 `--profile` 指定相机标定，省略时使用示例内参。
 
-![移动平台与 RGB-D](images/mobile-camera.gif)
+![移动平台与 RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
-桌面场景使用固定相机观察目标变化，移动场景让基础几何底盘沿脚本轨迹运动。
-相机随底盘产生新的视角，可把 RGB-D 和位姿送入里程计、点云融合或视点覆盖算法。
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
+
+桌面场景的相机固定、目标移动，移动平台场景的相机随底盘沿预设轨迹运动。
 `states.jsonl` 记录每帧光学位姿和场景状态，移动场景还包含 `world_from_base`。
 
 ```text
@@ -169,6 +172,4 @@ with MujocoRGBDCamera(model, k, camera="iphone_camera") as camera:
     world_points = frame.point_cloud(world=True)
 ```
 
-核心演示依赖 MuJoCo、NumPy 和 Pillow。真机连接通过 `[live]` 安装现有 PyPI SDK。
-手机外形、镜头位置和默认安装为近似示例。理想 RGB-D 用于几何和采集实验，真实
-设备的噪声、畸变、曝光和安装误差需要相应测量与传感器模型。
+真机连接通过 `[live]` 安装 PyPI `asmagic` SDK。

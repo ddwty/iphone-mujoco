@@ -6,10 +6,7 @@
 相机位姿与可回放的数据。需要真机输入时，通过已有 PyPI `asmagic` SDK 连接 iPhone。
 [Python SDK](https://pypi.org/project/asmagic/)
 
-![MuJoCo 相机实验台、RGB 与深度](docs/images/phone-lab.gif)
-
-动图来自实际 MuJoCo 渲染，使用 synthetic 示例内参。实验台包括已知尺寸物体、
-深度台阶、棋盘板和遮挡物，可用于检查相机投影、点云与数据采集程序。
+[![MuJoCo 相机实验台、RGB 与深度](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
 ## 先运行一个离线实验
 
@@ -52,40 +49,44 @@ macOS 也可先运行 `setup.command`，再双击 `Open Phone Lab.command`。
 
 ### 固定相机与桌面采集
 
+![相机实验台、RGB 与深度](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
+
 ```bash
 python examples/scene_camera.py --scenario tabletop \
   --duration 4 --fps 10 --headless --output recordings/tabletop
 iphone-mujoco inspect-episode recordings/tabletop/episode --json
 ```
 
-使用已知尺寸检查重建尺度、深度边缘和像素反投影。添加
-`--profile profiles/my-iphone.json` 可换成自己的实测内参，省略时使用明确标记的
-synthetic 配置。
+添加 `--profile profiles/my-iphone.json` 可使用自己的设备内参，默认使用包内相机配置。
 
 ### 移动机器人上的相机
 
-![沿预设路径运动的移动平台与 RGB-D](docs/images/mobile-camera.gif)
+![沿预设路径运动的移动平台与 RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
 ```bash
 python examples/scene_camera.py --scenario mobile \
   --duration 6 --fps 10 --output recordings/mobile
 ```
 
-macOS 打开交互窗口时，将 `python` 换成 `mjpython`。示例底盘由基础几何组成，
-沿脚本指定的运动学路径行驶。相机提供变化的视角与位姿，可把这些观测接到自己的
-里程计、点云配准或重建算法。
-原生窗口在场景旁显示 RGB 与米制深度预览。
+macOS 打开交互窗口时，将 `python` 换成 `mjpython`。底盘沿预设路径行驶，
+窗口同时显示 RGB 与深度，每帧记录底盘和相机位姿。
 
 ### 不同机械臂上的腕部相机
 
-![机械臂上安装的虚拟 iPhone 与腕部 RGB-D](docs/images/robot-wrist.gif)
+![机械臂上安装的虚拟 iPhone 与腕部 RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
 
 | `--robot` | 实验室机械臂 | 相机父 body | 末端配置 |
 |---|---|---|---|
 | `panda` | Franka Emika Panda，七轴 | `hand` | 平行夹爪 |
 | `ur5e` | Universal Robots UR5e，六轴 | `wrist_3_link` | 裸法兰 |
 
-先下载 Panda 模型，生成 synthetic 相机内参，再运行一段腕部采集。
+下载 Panda 模型并采集一段腕部数据。
 
 ```bash
 iphone-mujoco models --fetch panda
@@ -105,14 +106,11 @@ mjpython -m iphone_mujoco capture-wrist --robot ur5e \
   --duration 5 --fps 10 --output recordings/wrist-ur5e
 ```
 
-下载器保留上游许可证并校验文件。`--show-phone` 显示近似手机外壳。默认安装外参
-是演示配置，实际安装可用 `--mount measured-mount.json` 载入实测结果。
-相机通过正向运动学跟随关节，RGB、深度和机器人状态取自同一物理状态。
-`--motion hold` 可保持固定关节目标。
-腕部采集窗口也会在机器人场景旁显示本帧 RGB 与深度。
+`--show-phone` 显示手机，`--mount measured-mount.json` 载入自己的安装外参。
+RGB、深度和机器人状态同步采集。`--motion hold` 保持固定关节目标，
+采集窗口同时显示机器人、RGB 与深度。
 
-两种机械臂均采用 Google DeepMind 维护的 MuJoCo Menagerie MJCF 与网格资源，
-固定上游提交。模型来源、关节、执行器及适配约定见开发文档。
+两种机械臂均采用 Google DeepMind 的 MuJoCo Menagerie 模型，模型来源与适配方法见开发文档。
 [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [开发文档](docs/development.md)
 
 ### 放入自己的实验场景
@@ -126,8 +124,8 @@ python examples/scene_camera.py --scenario custom \
   --duration 4 --fps 10 --output recordings/custom-scene
 ```
 
-父 body 可以是机械臂法兰、移动底盘、头部或固定支架，相机会随它的变换更新。
-相机指南提供可以直接复现的自定义场景例子与 mount 格式。[相机安装指南](docs/phone-lab.md)
+通过 body 名称将相机装到机械臂法兰、移动底盘、头部或固定支架。
+完整例子与 mount 格式见相机指南。[相机安装指南](docs/phone-lab.md)
 
 也可导出原生 MJCF 相机模组，include 到自己的 `worldbody` 或机器人 body 中。
 
@@ -138,8 +136,7 @@ iphone-mujoco export-phone --output recordings/iphone.xml
 ## 把采集结果用于算法
 
 腕部采集会保存 RGB PNG、UInt16 深度 PNG、标定、安装外参、`states.jsonl`、
-点云预览与 `episode/`。场景示例使用相同的回放 API，读取 episode 可以同时保留
-内参、位姿、元数据和各自的时间基准。
+点云预览与 `episode/`。通过 episode 读取图像、内参、位姿和逐帧元数据。
 
 ```python
 from iphone_mujoco.recording import ReplaySource
@@ -161,9 +158,8 @@ python examples/fuse_episode.py recordings/mobile/episode \
   --output recordings/mobile-map --voxel-size .01 --stride 4
 ```
 
-示例面向静态场景，在体素网格中平均点和颜色，输出 `points.ply`、逐帧来源以及点数
-和包围盒摘要。腕部图像与状态配对也可以接到自己的模仿学习数据转换程序。
-完整文件结构及深度 PNG 读取方法见腕部指南。[腕部数据指南](docs/wrist-rgbd.md)
+融合脚本在体素网格中平均静态场景的点和颜色，输出 `points.ply`、逐帧来源及摘要。
+数据字段与深度 PNG 读取方法见腕部指南。[腕部数据指南](docs/wrist-rgbd.md)
 
 ## 接入自己的真实 iPhone
 
@@ -191,7 +187,7 @@ Stream 与 Robot control 共享 8000 端口，作为独立 App 工作流使用�
 录制真实 RGB-D 时，在 Stream 页面运行
 `iphone-mujoco record --ip YOUR_IP --mode camera --duration 10 --output recordings/phone`。
 
-## 数据约定与当前范围
+## 数据约定
 
 | 数据 | 约定 |
 |---|---|
@@ -202,9 +198,7 @@ Stream 与 Robot control 共享 8000 端口，作为独立 App 工作流使用�
 | 光学位姿 | MuJoCo Z-up 世界 ← CV 相机，X 右、Y 下、Z 前 |
 | 时间 | 区分仿真、发送端和本机收到时间 |
 
-手机外形和默认安装外参为近似示例。真实安装需要实测外参及设备标定。
-RGB-D 使用理想针孔模型，LiDAR 噪声/置信度、曝光、滚动快门和畸变需要额外建模。
-机械臂控制提供受限仿真目标，精密跟随和真实机器人实验需要各自的验证。
+真实安装使用设备标定与实测安装外参，传感器模型和控制器行为见开发文档。
 
 ## 文档
 

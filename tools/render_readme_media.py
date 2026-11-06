@@ -149,6 +149,7 @@ def save_animation(frames, path, fps):
     indexed = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in frames]
     indexed[0].save(path, save_all=True, append_images=indexed[1:], duration=round(1000 / fps),
                     loop=0, optimize=True, disposal=2)
+    frames[len(frames) // 4].save(path.with_suffix(".png"))
     return {"file": path.name, "frames": len(frames), "width": 816, "height": 508,
             "playback_fps": fps, "bytes": path.stat().st_size}
 
@@ -165,8 +166,8 @@ def main():
     if not 4 <= args.frames <= 120 or not 4 <= args.robot_frames <= 60 or not 1 <= args.fps <= 30:
         parser.error("Use 4-120 clip frames, 4-60 robot frames and 1-30 playback FPS")
     paths = [args.output / name for name in ("phone-lab.gif", "robot-wrist.gif", "mobile-camera.gif")]
-    if any(path.exists() for path in paths):
-        parser.error("Animation already exists. Choose a new output directory.")
+    if any(path.exists() or path.with_suffix(".png").exists() for path in paths):
+        parser.error("Animation or preview already exists. Choose a new output directory.")
     args.output.mkdir(parents=True, exist_ok=True)
     lab = save_animation(lab_frames(args.frames), paths[0], args.fps)
     print(json.dumps(lab), flush=True)

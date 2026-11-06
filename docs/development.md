@@ -1,8 +1,7 @@
 # Development and data contracts
 
-The MuJoCo renderer and optional real-iPhone adapter share an explicit RGB-D
-contract. Keep simulated geometry, device measurements and unavailable values
-distinct. The public package/import names are `iphone-mujoco` / `iphone_mujoco`;
+The MuJoCo renderer and real-iPhone adapter share the `RGBDFrame` data contract.
+The public package/import names are `iphone-mujoco` / `iphone_mujoco`;
 legacy import aliases reference the same canonical classes.
 
 ## Module ownership
@@ -17,18 +16,17 @@ legacy import aliases reference the same canonical classes.
 | `robots`, `control` | Robot adapters, pinned models and bounded simulated targets |
 | `wrist` | Rigid mounting and same-state camera/robot capture |
 | `recording`, `inspection` | Versioned episodes, replay and offline validation |
-| `cli` | User workflows, not another protocol implementation |
+| `cli` | User workflows |
 
-The existing PyPI `asmagic` SDK owns ZeroMQ, Protobuf and JPEG/HEVC decoding.
-Do not vendor its schemas, receivers or decoder. Installation must not depend
-on a Swift or editable SDK checkout. Additional sensor adapters should consume
-the SDK's public subscriber objects and declare their frames, units and clocks.
+The PyPI `asmagic` SDK provides ZeroMQ, Protobuf and JPEG/HEVC decoding.
+Additional sensor adapters use its public subscribers and declare their
+frames, units and clocks.
 
 ## Live SDK workflows
 
-The iPhone publishes; the computer subscribes to its LAN address. Camera and
-Robot control are separate workflows using the same port, so a page switch
-does not establish simultaneous camera/control delivery from one phone.
+The iPhone publishes and the computer subscribes to its LAN address.
+Select Stream or Robot control in the app to match the adapter mode.
+Both workflows use port 8000.
 
 | App workflow | TCP | Payload | Adapter |
 |---|---:|---|---|
@@ -36,9 +34,8 @@ does not establish simultaneous camera/control delivery from one phone.
 | Robot control → Through Mac | 8000 | Pose/velocity and sender wall time | `AsMagicSource(ip, mode="teleop")` |
 | Robot control → Through Mac | 8020 | Buttons, sticks and triggers | Same teleop adapter |
 
-A socket connection is not frame delivery; check actual samples. Robot control
-does not send RGB, depth, K, session IDs or frame IDs. A receiver-created epoch
-identifies receipt continuity, not a measured AR session. A second phone can
+Monitor sample counts after connecting. Robot control supplies pose and buttons.
+Its receiver-created epoch identifies connection continuity. A second phone can
 provide camera observations while the first provides control.
 
 Camera input defaults to frame-paired `localPose`. A guest's `globalPose` may
@@ -47,10 +44,10 @@ be an older participant estimate: global selection requires both
 registration remains a separate measured transform.
 
 Robot control copies the raw ARKit camera transform into both wire pose fields.
-Those are absolute AR-session poses, without a robot-base registration or
-clutch anchor; relative motion is established by the receiving controller.
+Those are absolute AR-session poses. The receiving controller establishes the
+clutch anchor and relative motion.
 Stopping the app closes publishers without an explicit emergency-stop packet.
-The separate robot TCP command interface is not the 8000/8020 protobuf stream.
+The app's robot TCP commands use a separate interface.
 
 | Control | App meaning | Package field |
 |---|---|---|
@@ -61,10 +58,10 @@ The separate robot TCP command interface is not the 8000/8020 protobuf stream.
 | D-pad up/down rising edge | Sensitivity change by 0.05 | `buttons.speed_up/speed_down` |
 | R2 / R1 | Claw fraction `max(R2, R1)` | `gripper` in [0,1] |
 
-The legacy face-button order is Triangle, Square, Cross, Circle; use SDK named
-controls. Joystick `is_connected` describes controller hardware, not permission
-to move: on-screen controls remain usable. Different CLI workflows may expose
-only a subset of the app actions; check their usage guide.
+The legacy face-button order is Triangle, Square, Cross, Circle. Use SDK named
+controls. Joystick `is_connected` describes attached controller hardware.
+On-screen controls remain usable. CLI workflows expose the actions listed in
+their usage guides.
 
 ## RGB-D and calibration
 
@@ -77,22 +74,18 @@ remain `None`; invalid metric depth samples are NaN.
 - Depth: optical-axis Z in meters, not range along a ray. Wire bytes are tightly
   packed little-endian UInt16 with an explicit meters/code scale, normally
   `0.0001`. Zero is invalid; generated exports reserve 65535 for saturation.
-- The wire representation saturates near 6.5535 m; this is not a claim about
-  reliable iPhone sensing range. Quantization/range gating are separate from
-  ideal rendering. No missing scale or sensor observation is invented; legacy
-  scale-less files require an explicit override in the conversion API.
+- The UInt16 encoding range ends near 6.5535 m. Legacy scale-less files require
+  an explicit scale override in the conversion API.
 - K preserves fx/fy/cx/cy, unequal focal lengths and off-center principal points;
   nonzero skew is rejected. The wire field `camersIntrinsics` is column-major.
   The sender scales K when resizing RGB.
 - Depth K assumes full-frame RGB registration and center-aligned resampling:
   `u' = (u + 0.5) * scale - 0.5`. Unknown crop/registration cannot be inferred.
-- Confidence is optional per-depth-pixel ARConfidenceLevel UInt8. Renderer
-  validity and ideal wire confidence are not measured LiDAR confidence.
+- Confidence is optional per-depth-pixel ARConfidenceLevel UInt8.
 
-`calibrate` writes the bare `CameraCalibration` JSON accepted by `--profile`.
-Its K is a runtime snapshot for that device/settings, not a universal factory
-specification. `DeviceProfile.from_frame(frame)` adds provenance and unknown
-physical properties; its richer JSON is not a direct CLI profile replacement.
+`calibrate` writes the `CameraCalibration` JSON accepted by `--profile` for the
+current device and capture settings. `DeviceProfile.from_frame(frame)` provides
+a separate, richer record with provenance and physical-property fields.
 
 The SDK owns HEVC decoder state and receives encoded packets without ZeroMQ
 conflation, then retains decoded output in a bounded queue. This package keeps
@@ -131,9 +124,9 @@ The camera follows robot forward kinematics. `move_body=True` is for a dedicated
 static/mocap phone body; do not teleport a jointed robot to reproduce phone
 motion. Attached cameras can simply render from their moving parent body.
 
-`wrist_camera_mjcf(..., show_phone=True)` adds the approximate phone shell at
-the optical mount. Its cosmetic geoms explicitly use zero mass and disabled
-contacts, including when a parent MJCF provides default geom mass. The
+`wrist_camera_mjcf(..., show_phone=True)` adds the phone shell at the optical
+mount. Its cosmetic geoms use zero mass and disabled contacts, including when
+a parent MJCF provides default geom mass.
 Use an explicit saved mount JSON to reproduce a specific experiment rig.
 
 ## Clocks, sessions and freshness
@@ -145,21 +138,21 @@ Use an explicit saved mount JSON to reproduce a specific experiment rig.
 | Sender source | ARKit monotonic source time, scoped to source/session |
 | Local receipt | Host monotonic arrival/event time used for freshness |
 
-Do not subtract clocks on different machines to report one-way latency. Camera
-frame IDs and source/session identities preserve discontinuities; Robot control
-has only wall time. Origin resets cannot silently reuse an unrelated measured
-world registration. A packet timestamp does not prove cross-device simultaneity.
+Use local receipt time for freshness checks. Cross-device timing requires clock
+synchronization. Camera frame IDs and source/session identities identify
+discontinuities. Robot control supplies wall time. Re-establish world
+registration after an origin reset.
 
 Pose and buttons have independent receipt times/freshness: a button update
 cannot refresh an old pose. First connect/reconnect and receipt gaps must observe
 Move released before accepting held Move. Invalid, stale or discontinuous input
 holds the target and reanchors subsequent movement. Limits still apply during
-replay. These are simulator safeguards, not physical robot safety guarantees.
+replay.
 
 Wrist RGB, depth and robot state come from one `mjData` state after a complete
 physics step, with no step between samples. Sampling starts at positive
 simulation time because zero source-time means missing in the current SDK path.
-Requested wrist FPS is per simulation second, not guaranteed wall-clock rate.
+Requested wrist FPS counts frames per simulation second.
 
 ## Episodes and replay
 
@@ -167,10 +160,9 @@ An episode contains a versioned manifest, numbered numeric NPZ files and JSON
 sidecars. Writers reject existing nonempty directories. Readers disable pickle,
 reject object arrays and unknown versions, and preserve calibration, confidence,
 raw poses/K, sender/source/receipt clocks, source/session identity and buttons.
-Image/PLY exports are convenience views, not replacements for that metadata.
+Image/PLY exports accompany the episode metadata.
 
-The existing format identifier `asmagic-mujoco-episode` survives the package
-rename. Branding does not justify rewriting recordings or losing compatibility.
+Episodes use the format identifier `asmagic-mujoco-episode`.
 
 `ReplaySource` defaults to immediate iteration. With `realtime=True`, it schedules
 by recorded local event intervals and replay speed, rebases controller receipt
@@ -178,9 +170,7 @@ time while preserving original pose age, and retains original timing under
 `metadata["replay"]`. Fast-generated simulation receipt intervals may differ
 from simulation time; resampling must explicitly select the intended clock.
 
-`inspect-episode` is read-only and reports coverage, shape/K, source/session and
-separate clock consistency. Structural validity does not establish physical
-calibration quality, experiment correctness or a live phone connection.
+`inspect-episode` reports coverage, shape/K, source/session and clock consistency.
 
 ## Adding a robot
 
@@ -205,8 +195,8 @@ joint/control bounds. Torque/velocity motors, ball/free joints and tendon
 couplings need a different controller adapter and are rejected. Three axes
 cannot reproduce an arbitrary six-dimensional target.
 
-Optional `gripper_actuator_names`, `gripper_open`, `gripper_closed` arrays use
-actuator control values, not guessed joint angles. Panda uses its upstream
+Optional `gripper_actuator_names`, `gripper_open`, `gripper_closed` arrays specify
+actuator control values. Panda uses its upstream
 0–255 range; UR5e uses a bare flange.
 See [the custom robot example](../examples/custom_robot.py) for Python loading.
 Keep model/data and controller stepping on one simulation thread.
@@ -221,14 +211,12 @@ original licenses. Use `IPHONE_MUJOCO_MODEL_CACHE` for a shared
 local cache; legacy `ASMAGIC_MUJOCO_MODEL_CACHE` and previous caches remain
 compatible. Caches are excluded from source and release distributions.
 
-Default phone geometry and wrist mounts are demonstrations. Real rigs require
-measured hand-eye/extrinsic calibration; mass, inertia and lens mounting remain
-unknown until measured. Ideal rendering does not model LiDAR noise/confidence,
-distortion, rolling shutter, exposure or hardware latency.
+The phone shell and default mounts provide visual placement. For a physical rig,
+supply measured hand-eye/extrinsic calibration and load parameters for mass,
+inertia and lens mounting. Rendering uses an ideal pinhole model. Experiments
+with LiDAR confidence/noise, distortion, rolling shutter, exposure or sensor
+latency require corresponding sensor models.
 
-The `phone-lab` scene contains static camera-test geometry. Damped Jacobian IK and position servos
-provide bounded simulation targets, with potentially substantial moving-target
-residuals. There is no hardware driver, motion planner or collision avoidance.
-IMU, hand/body/face retargeting and other SDK signals need explicit simulator
-adapters before becoming supported capabilities. Track proposals in Issues;
-use Actions/releases for checks actually run and their precise scope.
+The controller uses damped Jacobian IK and position servos with joint,
+workspace and rate bounds. Hardware drivers, motion planning, collision
+avoidance and additional SDK signal adapters require separate integrations.

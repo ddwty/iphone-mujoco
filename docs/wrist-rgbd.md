@@ -3,11 +3,13 @@
 相机刚性安装到机械臂末端。每帧 RGB、深度、关节角、速度与控制量取自同一个
 `mjData` 状态，相机世界位姿由正向运动学和安装外参得到。
 
-![虚拟 iPhone 腕部相机与 RGB-D](images/robot-wrist.gif)
+[![虚拟 iPhone 腕部相机与 RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
+
+[GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
 
 ## 从 Franka Panda 开始
 
-在项目根目录下载 Panda 模型，生成 synthetic 示例内参，随后运行第一段采集。
+下载 Panda 模型、导出相机配置并开始采集。
 
 ```bash
 iphone-mujoco models --fetch panda
@@ -19,8 +21,8 @@ mjpython -m iphone_mujoco capture-wrist \
 ```
 
 macOS 使用 `mjpython` 打开窗口，Linux/Windows 使用 `python`。
-`--show-phone` 显示近似手机外壳，外观几何明确使用零质量并关闭接触。
-默认执行小幅关节演示运动，`--motion hold` 使用固定关节目标。
+`--show-phone` 显示手机外壳，`--motion hold` 保持关节目标。
+默认执行小幅关节运动。
 每次运行使用新的或空的输出目录。
 
 | 机械臂 | `--robot` | 默认安装 body | 夹爪 | 模型 |
@@ -40,9 +42,6 @@ python -m iphone_mujoco capture-wrist \
   --output recordings/wrist-ur5e
 ```
 
-这些数据可作为眼在手目标检测、视觉伺服、视点选择和轨迹学习的观测输入。
-训练或控制算法可以通过每帧位姿、状态与 K 将图像对应到机器人和场景。
-
 ## 批量生成和真实内参
 
 离线生成数据时可以关闭交互窗口并取消真实时间等待。
@@ -54,9 +53,8 @@ python -m iphone_mujoco capture-wrist \
   --output recordings/wrist-offline
 ```
 
-`--fps` 表示每个仿真秒采多少帧，采样时间保存在每帧状态中。渲染、压缩和写盘
-决定实际运行耗时。`--headless` 继续使用 OpenGL，Linux 服务器可配置 EGL 或
-Xvfb/GLFW。
+`--fps` 表示每个仿真秒采多少帧，采样时间保存在每帧状态中。
+`--headless` 使用 OpenGL，Linux 服务器可配置 EGL 或 Xvfb/GLFW。
 
 使用真实 iPhone 内参时，先在 asMagic Stream 开启 RGB/深度发送，然后采集 K。
 
@@ -65,7 +63,7 @@ python -m pip install -e '.[live]'
 iphone-mujoco calibrate --ip YOUR_IP --output profiles/my-iphone.json
 ```
 
-将上述采集命令的 `--profile` 换成此文件。默认公开示例 RGB 为 640×480，深度为
+将采集命令的 `--profile` 换成此文件。示例配置的 RGB 为 640×480，深度为
 256×192，真机尺寸取决于当前配置。更换手机或拍摄设置后重新采集标定。
 
 ## 手机控制机械臂并采集腕部图像
@@ -83,7 +81,7 @@ mjpython -m iphone_mujoco capture-wrist \
 Ctrl-C 结束并关闭录制。此工作流中手机提供控制输入，MuJoCo 提供腕部 RGB-D。
 当前 App 的 Robot control 页发送位姿和控制量，Stream 页发送相机观测。
 
-使用已经录好的遥控输入生成仿真图像也可以复现同一输入序列。
+回放已录制的遥控输入并采集腕部图像。
 
 ```bash
 mjpython -m iphone_mujoco capture-wrist \
@@ -110,8 +108,7 @@ wrist-panda/
   run.json                 # 帧数、仿真时间和运行耗时
 ```
 
-同一编号的图像与状态关联到一帧。用统一 API 读取时，可以同时获得 K、米制深度、
-世界位姿与机器人状态。
+同一编号对应同一帧的图像和机器人状态。通过 `ReplaySource` 读取。
 
 ```python
 from iphone_mujoco.recording import ReplaySource
@@ -166,8 +163,7 @@ depth_m[raw == 0] = np.nan
 T_world_camera = T_world_parent × T_parent_camera
 ```
 
-默认演示安装朝向各机械臂的初始目标区域，并标记为 `measured=false`。
-例如 Panda 的默认 mount 文件包含以下结构。
+默认相机朝向初始目标区域。Panda 的安装配置如下，`measured` 记录外参是否经过实测。
 
 ```json
 {
@@ -194,7 +190,3 @@ mjpython -m iphone_mujoco capture-wrist \
 ```
 
 执行器类型、TCP 和夹爪适配约定见开发文档。[机器人适配](development.md#adding-a-robot)
-
-近似手机外形用于观察安装位置。实际负载动力学需要实测质量、惯量和外形。
-理想 RGB-D 渲染尚需结合真实 LiDAR 噪声、曝光、滚动快门、畸变和置信度模型，
-才能开展对应的传感器误差实验。

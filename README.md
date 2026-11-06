@@ -7,11 +7,7 @@ RGB-D, calibration, camera poses and replayable episodes. Connect a real iPhone
 through the existing PyPI `asmagic` SDK when your experiment needs live input.
 [Python SDK](https://pypi.org/project/asmagic/)
 
-![MuJoCo phone laboratory with RGB and depth](docs/images/phone-lab.gif)
-
-The animations are generated from MuJoCo renders with synthetic calibration.
-The lab provides known-size objects, depth steps, a checkerboard and occlusion
-for testing camera projection, point clouds and data collection.
+[![MuJoCo phone laboratory with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
 ## Start with an offline experiment
 
@@ -55,19 +51,24 @@ Xvfb/GLFW configuration. `--headless` still renders sensor images.
 
 ### External camera and tabletop data
 
+![Camera laboratory with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
+
 ```bash
 python examples/scene_camera.py --scenario tabletop \
   --duration 4 --fps 10 --headless --output recordings/tabletop
 iphone-mujoco inspect-episode recordings/tabletop/episode --json
 ```
 
-Use the known dimensions to check reconstruction scale, depth-edge handling and
-pixel-to-ray projection. Pass `--profile profiles/my-iphone.json` to use measured
-intrinsics. Omitting it selects the labeled synthetic example.
+Pass `--profile profiles/my-iphone.json` to use your device's intrinsics.
+The examples use the included camera profile by default.
 
 ### A camera on a moving robot
 
-![Scripted mobile platform and its RGB-D camera](docs/images/mobile-camera.gif)
+![Scripted mobile platform and its RGB-D camera](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
 ```bash
 python examples/scene_camera.py --scenario mobile \
@@ -75,22 +76,21 @@ python examples/scene_camera.py --scenario mobile \
 ```
 
 On macOS, replace `python` with `mjpython` for examples that open a viewer.
-The primitive base follows a scripted kinematic path. Its camera produces
-changing viewpoints and poses for odometry or mapping experiments. Add your
-own state estimator or reconstruction algorithm to process those observations.
-The native viewer shows RGB and metric-depth previews beside the scene.
+The base follows a scripted path. The viewer shows RGB and depth beside the
+scene, and each frame records the base and camera poses.
 
 ### Wrist cameras on different arms
 
-![Mounted iPhone and wrist RGB-D on robot arms](docs/images/robot-wrist.gif)
+![Mounted iPhone and wrist RGB-D on robot arms](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
 
 | `--robot` | Laboratory arm | Camera parent | End effector |
 |---|---|---|---|
 | `panda` | Franka Emika Panda, 7 arm axes | `hand` | Parallel gripper |
 | `ur5e` | Universal Robots UR5e, 6 arm axes | `wrist_3_link` | Bare flange |
 
-Download the Panda model, generate a synthetic camera profile and collect your
-first wrist sequence.
+Download Panda and collect a wrist-camera sequence.
 
 ```bash
 iphone-mujoco models --fetch panda
@@ -110,16 +110,13 @@ mjpython -m iphone_mujoco capture-wrist --robot ur5e \
   --duration 5 --fps 10 --output recordings/wrist-ur5e
 ```
 
-The download retains upstream licenses and verifies asset hashes. `--show-phone`
-adds an approximate visual shell. Default mounts are demonstration transforms.
-For a measured rig, supply `--mount measured-mount.json`. Joint motion drives the
-rig through forward kinematics, and RGB, depth and robot state share one physics
-state. Use `--motion hold` for a stationary joint target.
-The wrist viewer displays the captured RGB and depth alongside the robot.
+Use `--show-phone` to display the phone and `--mount measured-mount.json` to
+load your mounting transform. RGB, depth and robot state are captured together.
+Use `--motion hold` for a stationary joint target. The viewer displays RGB and
+depth alongside the robot.
 
-Both arms use MJCF and mesh assets maintained in Google DeepMind's MuJoCo
-Menagerie, pinned to an upstream commit. Robot adapters, model provenance and
-joint/actuator contracts are documented in the developer guide. [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [Developer guide](docs/development.md)
+Both arms use Google DeepMind's MuJoCo Menagerie models. Model sources and
+robot adapter details are in the developer guide. [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [Developer guide](docs/development.md)
 
 ### Attach the camera to your own scene
 
@@ -133,9 +130,8 @@ python examples/scene_camera.py --scenario custom \
   --duration 4 --fps 10 --output recordings/custom-scene
 ```
 
-The named parent can be a robot flange, mobile base, head or a static support.
-Camera pose follows that body's transform. A complete runnable custom-scene
-example and the mount schema are in the camera guide. [Camera mounting guide](docs/phone-lab.md)
+Attach the camera to a robot flange, mobile base, head or static support using
+its body name. The camera guide includes a complete example and mount format. [Camera mounting guide](docs/phone-lab.md)
 
 For native MJCF reuse, export the module and include it under your selected
 `worldbody` or robot body.
@@ -148,8 +144,7 @@ iphone-mujoco export-phone --output recordings/iphone.xml
 
 Wrist collection writes RGB PNG, UInt16 depth PNG, calibration, mounting
 extrinsics, `states.jsonl`, a point-cloud preview and an `episode/` directory.
-Scene examples use the same replay API. Start with the episode to retain
-calibration, poses, metadata and distinct clocks.
+Read the episode to access images, calibration, poses and frame metadata.
 
 ```python
 from iphone_mujoco.recording import ReplaySource
@@ -172,10 +167,9 @@ python examples/fuse_episode.py recordings/mobile/episode \
   --output recordings/mobile-map --voxel-size .01 --stride 4
 ```
 
-This example averages points/colors in a voxel grid for static scene geometry.
-It writes `points.ply`, frame provenance and a summary with counts and bounds.
-Wrist state/image pairs can also feed your own imitation-learning dataset
-converter. Dataset schemas and PNG reading are covered in the wrist guide.
+The fusion script averages static-scene points and colors in a voxel grid and
+writes `points.ply`, frame provenance and a summary. See the wrist guide for
+dataset fields and depth PNG reading.
 [Wrist data guide](docs/wrist-rgbd.md)
 
 ## Connect your real iPhone
@@ -205,7 +199,7 @@ wrist observations. Stream and Robot control share port 8000 and operate as
 separate app workflows. To record real RGB-D, use the Stream page and run
 `iphone-mujoco record --ip YOUR_IP --mode camera --duration 10 --output recordings/phone`.
 
-## Data conventions and current scope
+## Data conventions
 
 | Quantity | Convention |
 |---|---|
@@ -216,12 +210,8 @@ separate app workflows. To record real RGB-D, use the Stream page and run
 | Optical pose | MuJoCo Z-up world ← CV camera, X right, Y down, Z forward |
 | Time | Simulation, sender and local receipt clocks remain distinct |
 
-The included phone geometry and default mounts are approximate. Real rigs need
-measured mounting extrinsics and device calibration. RGB-D rendering uses an
-ideal pinhole model. LiDAR noise/confidence, exposure, rolling shutter and lens
-distortion require additional sensor modeling. Robot control provides bounded
-simulation targets, and precision following and physical robot experiments
-require their own validation.
+Use device calibration and measured mounting transforms for a physical rig.
+Sensor models and controller behavior are described in the developer guide.
 
 ## Documentation
 
