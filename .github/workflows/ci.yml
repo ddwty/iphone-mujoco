@@ -90,7 +90,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libglfw3
-          python -m pip install dist/*.whl
+          python -m pip install dist/*.whl pytest
       - name: Render one synthetic camera observation
         run: |
           xvfb-run -a iphone-mujoco phone-lab --headless --output "$RUNNER_TEMP/phone-lab-smoke"
@@ -115,8 +115,13 @@ jobs:
           xvfb-run -a python examples/scene_camera.py --scenario mobile --headless --duration .2 --fps 10 --output "$RUNNER_TEMP/mobile-camera"
           iphone-mujoco inspect-episode "$RUNNER_TEMP/mobile-camera/episode" --json
           python examples/fuse_episode.py "$RUNNER_TEMP/mobile-camera/episode" --output "$RUNNER_TEMP/mobile-map" --stride 8
-          xvfb-run -a iphone-mujoco capture-wrist --robot reference6 --profile "$RUNNER_TEMP/phone-lab-smoke/capture-0000/calibration.json" --show-phone --headless --fast --duration .2 --fps 10 --output "$RUNNER_TEMP/visible-wrist"
-          iphone-mujoco inspect-episode "$RUNNER_TEMP/visible-wrist/episode" --json
+          iphone-mujoco models --fetch panda
+          iphone-mujoco models --fetch ur5e
+          IPHONE_MUJOCO_TEST_RENDER=1 xvfb-run -a python -m pytest tests/test_control.py tests/test_wrist.py -q
+          for robot in panda ur5e; do
+            xvfb-run -a iphone-mujoco capture-wrist --robot "$robot" --profile "$RUNNER_TEMP/phone-lab-smoke/capture-0000/calibration.json" --show-phone --headless --fast --duration .2 --fps 10 --output "$RUNNER_TEMP/wrist-$robot"
+            iphone-mujoco inspect-episode "$RUNNER_TEMP/wrist-$robot/episode" --json
+          done
           python - <<'PY'
           import os
           from pathlib import Path

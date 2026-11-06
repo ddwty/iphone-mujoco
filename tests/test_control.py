@@ -1,39 +1,46 @@
 """Headless dynamics and controller contracts, without camera or hardware claims."""
-from pathlib import Path
+from dataclasses import replace
 
 import mujoco
 import numpy as np
 import pytest
 
 from iphone_mujoco.control import CartesianTeleoperator, rotation_vector
-from iphone_mujoco.robots import RobotSpec, _safe_destination, get_robot, load_scene
+from iphone_mujoco.robots import _safe_destination, get_robot, load_scene
 
 
-def controller(name="reference6", **kwargs):
+@pytest.fixture(params=("panda", "ur5e"))
+def robot_name(request):
+    name = request.param
+    if not get_robot(name).model_path.is_file():
+        pytest.skip(f"Download the pinned {name} model with iphone-mujoco models --fetch {name}")
+    return name
+
+
+def controller(name, **kwargs):
     model, data, spec = load_scene(name)
     return model, data, CartesianTeleoperator(model, data, **spec.controller_kwargs, **kwargs)
 
 
-@pytest.mark.parametrize("name", ["reference6", "reference7"])
-def test_real_dynamics_tracks_cartesian_displacement(name):
-    model, data, control = controller(name, phone_to_world=np.eye(3))
+def test_vendor_dynamics_tracks_bounded_cartesian_displacement(robot_name):
+    model, data, control = controller(robot_name, phone_to_world=np.eye(3))
     pose = np.eye(4)
     initial = control.tcp_pose().copy()
     assert control.update(pose, receive_time=0)
     assert np.allclose(control.target_pose, initial)  # First frame is a pure anchor.
-    pose[0, 3] = .04
-    for index in range(450):
+    pose[0, 3] = .025
+    for index in range(500):
         now = index * model.opt.timestep
-        control.update(pose, receive_time=now)
+        control.update(pose, receive_time=now, gripper=.5)
         control.step(now=now, dt=model.opt.timestep)
         mujoco.mj_step(model, data)
     assert np.isfinite(data.qpos).all()
-    assert abs(control.tcp_pose()[0, 3] - initial[0, 3] - .04) < .006
-    assert np.linalg.norm(control.tcp_pose()[:3, 3] - control.target_pose[:3, 3]) < .008
+    assert control.tcp_pose()[0, 3] - initial[0, 3] > .01
+    assert np.linalg.norm(control.tcp_pose()[:3, 3] - control.target_pose[:3, 3]) < .02
 
 
-def test_clutch_stale_session_and_rezero_reanchor_without_jump():
-    _, data, control = controller()
+def test_clutch_stale_session_and_rezero_reanchor_without_jump(robot_name):
+    _, data, control = controller(robot_name)
     pose = np.eye(4)
     control.update(pose, receive_time=0, session_id="a")
     pose[0, 3] = .1
@@ -95,8 +102,8 @@ def test_repeated_hold_preserves_servo_target_under_gravity(held_mode):
     assert .005 < abs(data.qpos[0] - frozen_target[0]) < .06
 
 
-def test_pose_discontinuity_out_of_order_and_invalid_input():
-    _, _, control = controller()
+def test_pose_discontinuity_out_of_order_and_invalid_input(robot_name):
+    _, _, control = controller(robot_name)
     pose = np.eye(4)
     control.update(pose, receive_time=2)
     pose[0, 3] = 5
@@ -113,8 +120,8 @@ def test_pose_discontinuity_out_of_order_and_invalid_input():
         control.update(invalid)
 
 
-def test_rate_joint_workspace_gripper_and_home_limits():
-    model, data, control = controller(joint_velocity_limit=.3, workspace_radius=.1)
+def test_rate_joint_workspace_gripper_and_home_limits(robot_name):
+    model, data, control = controller(robot_name, joint_velocity_limit=.3, workspace_radius=.1)
     pose = np.eye(4)
     control.update(pose, receive_time=0)
     pose[0, 3] = .3
@@ -125,7 +132,8 @@ def test_rate_joint_workspace_gripper_and_home_limits():
     assert np.max(np.abs(data.ctrl[control.actuator_ids] - before)) <= .3 * .02 + 1e-12
     assert np.all(data.ctrl[control.actuator_ids] >= control.lower)
     assert np.all(data.ctrl[control.actuator_ids] <= control.upper)
-    assert np.allclose(data.ctrl[control.gripper_ids], .04 * (1 - 2 * .02))
+    expected_gripper = control.gripper_open + 2 * .02 * (control.gripper_closed - control.gripper_open)
+    np.testing.assert_allclose(data.ctrl[control.gripper_ids], expected_gripper)
     qpos_before = data.qpos.copy()
     before = data.ctrl[control.actuator_ids].copy()
     control.go_home(now=.12, dt=.02)
@@ -134,10 +142,10 @@ def test_rate_joint_workspace_gripper_and_home_limits():
     assert control.status.mode == "home"
 
 
-def test_rotation_log_handles_pi_and_teleop_maps_orientation():
+def test_rotation_log_handles_pi_and_teleop_maps_orientation(robot_name):
     rotation = np.diag((1., -1., -1.))
     assert np.isclose(np.linalg.norm(rotation_vector(rotation)), np.pi)
-    _, _, control = controller(phone_to_world=np.eye(3))
+    _, _, control = controller(robot_name, phone_to_world=np.eye(3))
     pose = np.eye(4)
     control.update(pose, receive_time=0)
     initial = control.tcp_pose()
@@ -148,44 +156,29 @@ def test_rotation_log_handles_pi_and_teleop_maps_orientation():
     assert np.allclose(control.target_pose[:3, 3], initial[:3, 3])
 
 
-def test_torque_motors_are_rejected():
-    model, data, control = controller()
+def test_torque_motors_are_rejected(robot_name):
+    model, data, control = controller(robot_name)
     model.actuator_biasprm[control.actuator_ids[0]] = 0
     with pytest.raises(ValueError, match="position servos"):
-        CartesianTeleoperator(model, data, **get_robot("reference6").controller_kwargs)
+        CartesianTeleoperator(model, data, **get_robot(robot_name).controller_kwargs)
 
 
-def test_custom_mjcf_adapter_and_safe_download_paths(tmp_path):
-    source = get_robot("reference6")
-    custom = RobotSpec("my-arm", source.model_path, source.joint_names, source.actuator_names, source.site_name, source.home_qpos)
+def test_custom_mjcf_adapter_preserves_named_vendor_joints(robot_name):
+    source = get_robot(robot_name)
+    custom = replace(source, name="my-arm", source="custom")
+    baseline, _, _ = load_scene(robot_name)
     model, data, spec = load_scene(custom)
-    assert model.nq == 8 and spec.name == "my-arm"
-    assert np.allclose(data.qpos[:6], custom.home_qpos)
-    _, _, no_home = load_scene(RobotSpec("no-home", source.model_path, source.joint_names, source.actuator_names, source.site_name))
+    assert model.nq == baseline.nq and spec.name == "my-arm"
+    joint_positions = [model.joint(name).qposadr[0] for name in spec.joint_names]
+    np.testing.assert_allclose(data.qpos[joint_positions], custom.home_qpos)
+    _, _, no_home = load_scene(replace(custom, name="no-home", home_qpos=()))
     assert no_home.controller_kwargs["home_qpos"] is None
+
+
+def test_safe_download_paths(tmp_path):
     for invalid in ("../escape", "/absolute", "assets/../../escape", "assets\\escape"):
         with pytest.raises(ValueError):
             _safe_destination(tmp_path, invalid)
     (tmp_path / "assets").symlink_to(tmp_path.parent)
     with pytest.raises(ValueError, match="symlink"):
         _safe_destination(tmp_path, "assets/escape.obj")
-
-
-@pytest.mark.parametrize("name", ["ur5e", "panda"])
-def test_downloaded_official_robot_smoke_when_available(name):
-    if not get_robot(name).model_path.is_file():
-        pytest.skip("Optional pinned Menagerie assets have not been downloaded")
-    model, data, spec = load_scene(name)
-    control = CartesianTeleoperator(model, data, **spec.controller_kwargs, phone_to_world=np.eye(3))
-    pose = np.eye(4)
-    initial = control.tcp_pose().copy()
-    control.update(pose, receive_time=0)
-    pose[0, 3] = .025
-    for index in range(500):
-        now = index * model.opt.timestep
-        control.update(pose, receive_time=now, gripper=.5)
-        control.step(now=now, dt=model.opt.timestep)
-        mujoco.mj_step(model, data)
-    assert np.isfinite(data.qpos).all()
-    assert control.tcp_pose()[0, 3] - initial[0, 3] > .01
-    assert np.linalg.norm(control.target_pose[:3, 3] - control.tcp_pose()[:3, 3]) < .02

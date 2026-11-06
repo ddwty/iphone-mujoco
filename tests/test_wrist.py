@@ -11,10 +11,18 @@ from iphone_mujoco.camera import CameraCalibration
 from iphone_mujoco.geometry import CV_TO_MUJOCO_CAMERA, pose_from_xyzw, project_points, transform_points
 from iphone_mujoco.phone_scene import demo_calibration
 from iphone_mujoco.recording import ReplaySource
-from iphone_mujoco.robots import load_scene
+from iphone_mujoco.robots import get_robot, load_scene
 from iphone_mujoco.wrist import (
     WristCameraMount, WristRGBDRecorder, default_wrist_mount, wrist_camera_mjcf, _place_demo_targets,
 )
+
+
+@pytest.fixture(params=("panda", "ur5e"))
+def robot_name(request):
+    name = request.param
+    if not get_robot(name).model_path.is_file():
+        pytest.skip(f"Download the pinned {name} model with iphone-mujoco models --fetch {name}")
+    return name
 
 
 def _world_from_body(data, body_id):
@@ -31,15 +39,16 @@ def _world_from_cv_camera(data, camera_id):
     return pose @ CV_TO_MUJOCO_CAMERA
 
 
-def test_wrist_camera_follows_joint_chain_without_teleporting_robot():
+def test_wrist_camera_follows_joint_chain_without_teleporting_robot(robot_name):
     calibration = CameraCalibration(64, 48, 59., 57., 29.3, 21.8, 32, 24)
     mount = WristCameraMount(
-        "tool", pose_from_xyzw([.02, -.07, .04, .1, .2, -.3, .9]),
+        default_wrist_mount(robot_name).parent_body,
+        pose_from_xyzw([.02, -.07, .04, .1, .2, -.3, .9]),
         camera_name="wrist_camera",
     )
-    baseline, _, _ = load_scene("reference6")
-    model, data, _ = load_scene(
-        "reference6", phone_xml=wrist_camera_mjcf(calibration, mount),
+    baseline, _, _ = load_scene(robot_name)
+    model, data, spec = load_scene(
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount),
         phone_parent_body=mount.parent_body,
     )
     assert model.nq == baseline.nq and model.nv == baseline.nv
@@ -48,9 +57,11 @@ def test_wrist_camera_follows_joint_chain_without_teleporting_robot():
     camera_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, mount.camera_name)
     local_camera_position = model.cam_pos[camera_id].copy()
     local_body_positions = model.body_pos.copy()
+    joint_positions = [model.joint(name).qposadr[0] for name in spec.joint_names]
+    home = data.qpos[joint_positions].copy()
     poses = []
-    for angles in ([0., -.65, 1.25, 0., -.6, 0.], [.4, -.4, .7, -.3, -.2, .5]):
-        data.qpos[:6] = angles
+    for angles in (home, home + np.linspace(-.15, .15, len(home))):
+        data.qpos[joint_positions] = angles
         mujoco.mj_forward(model, data)
         expected = _world_from_body(data, parent_id) @ mount.parent_from_camera
         actual = _world_from_cv_camera(data, camera_id)
@@ -61,33 +72,37 @@ def test_wrist_camera_follows_joint_chain_without_teleporting_robot():
     np.testing.assert_equal(model.body_pos, local_body_positions)
 
 
-def test_wrist_mount_rejects_nonrigid_transform_and_missing_parent():
+def test_wrist_mount_rejects_nonrigid_transform():
     invalid = np.eye(4)
     invalid[0, 0] = 2.
     with pytest.raises(ValueError):
-        WristCameraMount("tool", invalid)
+        WristCameraMount("hand", invalid)
     with pytest.raises(ValueError):
-        WristCameraMount("tool", np.full((4, 4), np.nan))
+        WristCameraMount("hand", np.full((4, 4), np.nan))
     with pytest.raises(ValueError):
         WristCameraMount("", np.eye(4))
+
+
+def test_wrist_mount_rejects_missing_parent(robot_name):
     calibration = CameraCalibration(64, 48, 59., 57., 29.3, 21.8, 32, 24)
     mount = WristCameraMount("body_that_does_not_exist", np.eye(4))
     with pytest.raises(ValueError, match="parent|body"):
         load_scene(
-            "reference6", phone_xml=wrist_camera_mjcf(calibration, mount),
+            robot_name, phone_xml=wrist_camera_mjcf(calibration, mount),
             phone_parent_body=mount.parent_body,
         )
 
 
-def test_visible_phone_preserves_optical_mount_and_robot_dynamics():
+def test_visible_phone_preserves_optical_mount_and_robot_dynamics(robot_name):
     calibration = CameraCalibration(64, 48, 59., 57., 29.3, 21.8, 32, 24)
-    mount = WristCameraMount("tool", pose_from_xyzw([.03, -.1, .08, .1, .2, -.3, .9]))
-    baseline, baseline_data, _ = load_scene(
-        "reference6", phone_xml=wrist_camera_mjcf(calibration, mount),
+    mount = WristCameraMount(default_wrist_mount(robot_name).parent_body,
+                             pose_from_xyzw([.03, -.1, .08, .1, .2, -.3, .9]))
+    baseline, baseline_data, baseline_spec = load_scene(
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount),
         phone_parent_body=mount.parent_body,
     )
-    model, data, _ = load_scene(
-        "reference6", phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True),
+    model, data, spec = load_scene(
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True),
         phone_parent_body=mount.parent_body,
     )
     assert (model.nq, model.nv, model.nu, model.nmocap) == (
@@ -108,8 +123,12 @@ def test_visible_phone_preserves_optical_mount_and_robot_dynamics():
     rig_id = int(model.cam_bodyid[camera_id])
     assert model.body_parentid[rig_id] == parent_id
     optical_site = model.site(mount.camera_name + "_phone_optical_center").id
-    for angles in ([0., -.65, 1.25, 0., -.6, 0.], [.4, -.4, .7, -.3, -.2, .5]):
-        baseline_data.qpos[:6] = data.qpos[:6] = angles
+    joint_positions = [model.joint(name).qposadr[0] for name in spec.joint_names]
+    baseline_positions = [baseline.joint(name).qposadr[0] for name in baseline_spec.joint_names]
+    home = data.qpos[joint_positions].copy()
+    for angles in (home, home + np.linspace(-.15, .15, len(home))):
+        baseline_data.qpos[baseline_positions] = angles
+        data.qpos[joint_positions] = angles
         mujoco.mj_forward(baseline, baseline_data)
         mujoco.mj_forward(model, data)
         expected = _world_from_body(data, parent_id) @ mount.parent_from_camera
@@ -134,12 +153,11 @@ def test_visible_phone_overrides_inherited_robot_geom_mass():
     np.testing.assert_allclose(data.qM, baseline_data.qM, atol=1e-12)
 
 
-@pytest.mark.parametrize("robot", ["reference6", "reference7"])
-def test_reference_default_wrist_observes_demo_targets(robot):
+def test_mainstream_default_wrist_observes_demo_targets(robot_name):
     calibration = demo_calibration()
-    mount = default_wrist_mount(robot)
+    mount = default_wrist_mount(robot_name)
     model, data, _ = load_scene(
-        robot, phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True),
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True),
         phone_parent_body=mount.parent_body,
     )
     _place_demo_targets(model, data, mount.camera_name)
@@ -154,20 +172,21 @@ def test_reference_default_wrist_observes_demo_targets(robot):
 
 
 @pytest.mark.skipif((os.getenv("IPHONE_MUJOCO_TEST_RENDER") or os.getenv("ASMAGIC_TEST_RENDER")) != "1", reason="Set IPHONE_MUJOCO_TEST_RENDER=1 in an OpenGL session")
-def test_wrist_rgbd_recording_preserves_same_frame_state_and_iphone_depth(tmp_path):
+def test_wrist_rgbd_recording_preserves_same_frame_state_and_iphone_depth(tmp_path, robot_name):
     calibration = CameraCalibration(64, 48, 59., 57., 29.3, 21.8, 32, 24)
-    # At the reference arm's home pose, this camera faces down at the floor.
-    mount = WristCameraMount("tool", pose_from_xyzw([.03, -.1, .08, 1., 0., 0., 0.]))
+    mount = default_wrist_mount(robot_name)
     model, data, spec = load_scene(
-        "reference6", phone_xml=wrist_camera_mjcf(calibration, mount),
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount),
         phone_parent_body=mount.parent_body,
     )
     directory = tmp_path / "wrist"
     scale = .0001
     frames, snapshots = [], []
+    joint_position = int(model.joint(spec.joint_names[0]).qposadr[0])
+    home_position = data.qpos[joint_position]
     with WristRGBDRecorder(model, data, spec, mount, calibration, directory, depth_scale=scale) as recorder:
         for index in range(2):
-            data.qpos[0] = index * .15
+            data.qpos[joint_position] = home_position + index * .15
             data.time = 1.25 + index * .1
             mujoco.mj_forward(model, data)
             snapshots.append({name: getattr(data, name).copy() for name in ("qpos", "qvel", "ctrl")})

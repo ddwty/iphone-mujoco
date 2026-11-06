@@ -416,7 +416,7 @@ def main(argv=None):
         print(export_phone_lab(args.output, calibration))
     export_lab.set_defaults(func=export_lab_command)
     models = sub.add_parser("models", help="List or download the supported robot models")
-    models.add_argument("--fetch", choices=("ur5e", "panda"))
+    models.add_argument("--fetch", choices=("panda", "ur5e"))
     models.add_argument("--model-cache")
     def models_command(args):
         from .robots import fetch_menagerie, list_robots
@@ -426,7 +426,7 @@ def main(argv=None):
             print(list_robots())
     models.set_defaults(func=models_command)
     def robot_options(command):
-        command.add_argument("--robot", default="reference6", help="reference6, reference7, ur5e, panda, or custom adapter JSON")
+        command.add_argument("--robot", default="panda", help="panda (default), ur5e, or custom adapter JSON")
         command.add_argument("--model-cache")
         command.add_argument("--headless", action="store_true")
         command.add_argument("--duration", type=float, default=10., help="Seconds; 0 keeps running")
@@ -441,7 +441,7 @@ def main(argv=None):
     sim.add_argument("--publish", metavar="ENDPOINT", help="e.g. tcp://127.0.0.1:18000")
     sim.set_defaults(func=simulate)
     wrist = sub.add_parser("capture-wrist", help="Collect synchronized wrist RGB-D and robot states using iPhone calibration")
-    wrist.add_argument("--robot", default="panda", help="panda, ur5e, reference6/7, or custom adapter JSON")
+    wrist.add_argument("--robot", default="panda", help="panda (default), ur5e, or custom adapter JSON")
     wrist.add_argument("--model-cache")
     wrist.add_argument("--profile", required=True, help="Calibration JSON from calibrate or the synthetic export-lab example")
     wrist.add_argument("--mount", help="Measured parent-link <- CV camera mount JSON; default is a demo mount")

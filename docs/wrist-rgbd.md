@@ -5,33 +5,40 @@
 
 ![虚拟 iPhone 腕部相机与 RGB-D](images/robot-wrist.gif)
 
-## 从内置机械臂开始
+## 从 Franka Panda 开始
 
-在项目根目录生成 synthetic 示例内参，随后运行第一段采集。
+在项目根目录下载 Panda 模型，生成 synthetic 示例内参，随后运行第一段采集。
 
 ```bash
+iphone-mujoco models --fetch panda
 iphone-mujoco export-lab --output recordings/demo-rig
 mjpython -m iphone_mujoco capture-wrist \
-  --robot reference6 --profile recordings/demo-rig/calibration.json \
+  --robot panda --profile recordings/demo-rig/calibration.json \
   --show-phone --duration 5 --fps 10 \
-  --output recordings/wrist-reference6
+  --output recordings/wrist-panda
 ```
 
 macOS 使用 `mjpython` 打开窗口，Linux/Windows 使用 `python`。
-`--show-phone` 显示近似手机外壳，外观几何采用零密度并关闭接触。
+`--show-phone` 显示近似手机外壳，外观几何明确使用零质量并关闭接触。
 默认执行小幅关节演示运动，`--motion hold` 使用固定关节目标。
 每次运行使用新的或空的输出目录。
 
 | 机械臂 | `--robot` | 默认安装 body | 夹爪 | 模型 |
 |---|---|---|---|---|
-| 六轴教学臂 | `reference6` | `tool` | 双指位置控制 | 包内原始教学模型 |
-| 七轴教学臂 | `reference7` | `tool` | 双指位置控制 | 包内原始教学模型 |
-| Franka Panda | `panda` | `hand` | 上游 0–255 控制量 | Menagerie 按需下载 |
-| UR5e | `ur5e` | `wrist_3_link` | 裸法兰 | Menagerie 按需下载 |
+| Franka Emika Panda，七轴 | `panda` | `hand` | 平行夹爪，上游 0–255 控制量 | Menagerie MJCF 与网格 |
+| Universal Robots UR5e，六轴 | `ur5e` | `wrist_3_link` | 裸法兰 | Menagerie MJCF 与网格 |
 
-官方模型先运行 `iphone-mujoco models --fetch panda` 或
-`iphone-mujoco models --fetch ur5e`，随后更改 `--robot`。模型固定上游提交、逐文件
-校验并保留许可证。
+模型采用 Google DeepMind 维护的 MuJoCo Menagerie 资源，固定上游提交、逐文件
+校验并保留许可证。首次下载需要网络，随后复用本地缓存。
+选择 UR5e 时先下载模型，再更改 `--robot`。
+
+```bash
+iphone-mujoco models --fetch ur5e
+python -m iphone_mujoco capture-wrist \
+  --robot ur5e --profile recordings/demo-rig/calibration.json \
+  --show-phone --headless --fast --duration 5 --fps 10 \
+  --output recordings/wrist-ur5e
+```
 
 这些数据可作为眼在手目标检测、视觉伺服、视点选择和轨迹学习的观测输入。
 训练或控制算法可以通过每帧位姿、状态与 K 将图像对应到机器人和场景。
@@ -42,7 +49,7 @@ macOS 使用 `mjpython` 打开窗口，Linux/Windows 使用 `python`。
 
 ```bash
 python -m iphone_mujoco capture-wrist \
-  --robot reference7 --profile recordings/demo-rig/calibration.json \
+  --robot panda --profile recordings/demo-rig/calibration.json \
   --show-phone --headless --fast --duration 5 --fps 30 \
   --output recordings/wrist-offline
 ```
@@ -91,7 +98,7 @@ mjpython -m iphone_mujoco capture-wrist \
 ## 读取输出
 
 ```text
-wrist-reference6/
+wrist-panda/
   rgb/00000000.png          # 无损 RGB uint8
   depth/00000000.png        # 原始 UInt16 深度
   calibration.json         # RGB K 与深度尺寸
@@ -109,7 +116,7 @@ wrist-reference6/
 ```python
 from iphone_mujoco.recording import ReplaySource
 
-with ReplaySource("recordings/wrist-reference6/episode") as source:
+with ReplaySource("recordings/wrist-panda/episode") as source:
     frame = source.poll().rgbd
     rgb, depth_m = frame.rgb, frame.depth_m
     K_rgb = frame.calibration.matrix
@@ -137,7 +144,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-root = Path("recordings/wrist-reference6")
+root = Path("recordings/wrist-panda")
 info = json.loads((root / "camera_info.json").read_text())
 raw = np.asarray(Image.open(root / "depth/00000000.png"))
 depth_m = raw.astype(np.float32) * info["depth"]["meters_per_unit"]
@@ -160,15 +167,15 @@ T_world_camera = T_world_parent × T_parent_camera
 ```
 
 默认演示安装朝向各机械臂的初始目标区域，并标记为 `measured=false`。
-例如六轴教学臂的默认 mount 文件包含以下结构。
+例如 Panda 的默认 mount 文件包含以下结构。
 
 ```json
 {
-  "parent_body": "tool",
+  "parent_body": "hand",
   "parent_from_camera": [
-    [1, 0, 0, 0.05],
-    [0, -1, 0, 0.06],
-    [0, 0, -1, 0.05],
+    [1, 0, 0, 0.09],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0.06],
     [0, 0, 0, 1]
   ],
   "camera_name": "wrist_camera",

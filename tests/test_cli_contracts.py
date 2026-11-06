@@ -14,6 +14,20 @@ from iphone_mujoco.recording import RecordingWriter
 from iphone_mujoco.streams import LiveSample
 
 
+@pytest.mark.parametrize("argv,runtime", [
+    (["simulate"], "simulate"),
+    (["camera", "--ip", "fixture"], "live_camera"),
+    (["teleop", "--ip", "fixture"], "teleop"),
+    (["replay", "unused"], "teleop"),
+])
+def test_robot_workflows_default_to_menagerie_panda(argv, runtime, monkeypatch):
+    from iphone_mujoco import cli
+    selected = []
+    monkeypatch.setattr(cli, runtime, lambda args, **kwargs: selected.append(args.robot))
+    assert main(argv) == 0
+    assert selected == ["panda"]
+
+
 @pytest.mark.parametrize("argv", [
     ["phone-lab", "--duration", "nan"],
     ["phone-lab", "--fps", "inf"],

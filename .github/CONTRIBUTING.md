@@ -43,15 +43,18 @@ RGB-D smoke run in [CI](workflows/ci.yml).
 
 Regenerate the README animations from the actual simulator with a graphics
 context. Each GIF combines an overview, sensor RGB and a fixed-range depth
-preview. The default montage uses the included reference arms.
+preview. The default montage uses Franka Emika Panda and Universal Robots UR5e.
 
 ```bash
+iphone-mujoco models --fetch panda
+iphone-mujoco models --fetch ur5e
 python tools/render_readme_media.py --output recordings/readme-media
 ```
 
-Fetch Panda/UR5e first and add `--robots reference6 reference7 panda ur5e` to
-include all four arms. Review generated media before copying it into
-`docs/images/`. Keep each public image below the source export's 2 MB limit.
+The pinned model download retains upstream licenses and mesh files. Use
+`--robots panda` or `--robots ur5e` for a single-arm recording. Review media
+before copying it into `docs/images/`. Keep each public image below the source
+export's 2 MB limit.
 
 ## Source and compatibility
 

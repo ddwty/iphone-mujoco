@@ -61,10 +61,6 @@ def default_wrist_mount(robot: str) -> WristCameraMount:
         pose[:3, :3] = [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
         pose[:3, 3] = [.07, .12, 0.]
         parent = "wrist_3_link"
-    elif robot in ("reference6", "reference7"):
-        pose[:3, :3] = np.diag([1., -1., -1.])
-        pose[:3, 3] = [.05, .06, .05]
-        parent = "tool"
     else:
         raise ValueError("A custom robot requires an explicit wrist mount JSON")
     return WristCameraMount(parent, pose)

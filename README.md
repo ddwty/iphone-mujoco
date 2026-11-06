@@ -84,32 +84,30 @@ The native viewer shows RGB and metric-depth previews beside the scene.
 
 ![Mounted iPhone and wrist RGB-D on robot arms](docs/images/robot-wrist.gif)
 
-| `--robot` | Arm joints | Camera parent | Model availability |
+| `--robot` | Laboratory arm | Camera parent | End effector |
 |---|---|---|---|
-| `reference6` | `joint1`–`joint6` | `tool` | Included teaching model |
-| `reference7` | `joint1`–`joint7` | `tool` | Included teaching model |
-| `panda` | `joint1`–`joint7` | `hand` | Optional Menagerie Franka Panda |
-| `ur5e` | shoulder pan/lift, elbow, three wrist joints | `wrist_3_link` | Optional Menagerie UR5e |
+| `panda` | Franka Emika Panda, 7 arm axes | `hand` | Parallel gripper |
+| `ur5e` | Universal Robots UR5e, 6 arm axes | `wrist_3_link` | Bare flange |
 
-Generate a synthetic profile and collect your first wrist sequence.
-
-```bash
-iphone-mujoco export-lab --output recordings/demo-rig
-mjpython -m iphone_mujoco capture-wrist --robot reference6 \
-  --profile recordings/demo-rig/calibration.json --show-phone \
-  --duration 5 --fps 10 --output recordings/wrist-reference6
-```
-
-Use `python -m iphone_mujoco` outside macOS. Change `--robot` to `reference7`
-for the second built-in arm. For the official models, download the pinned assets
-once and select the corresponding robot.
+Download the Panda model, generate a synthetic camera profile and collect your
+first wrist sequence.
 
 ```bash
 iphone-mujoco models --fetch panda
-iphone-mujoco models --fetch ur5e
+iphone-mujoco export-lab --output recordings/demo-rig
 mjpython -m iphone_mujoco capture-wrist --robot panda \
   --profile recordings/demo-rig/calibration.json --show-phone \
   --duration 5 --fps 10 --output recordings/wrist-panda
+```
+
+Use `python -m iphone_mujoco` outside macOS. Select UR5e for a six-axis arm.
+Download each model once, then reuse its local cache for subsequent runs.
+
+```bash
+iphone-mujoco models --fetch ur5e
+mjpython -m iphone_mujoco capture-wrist --robot ur5e \
+  --profile recordings/demo-rig/calibration.json --show-phone \
+  --duration 5 --fps 10 --output recordings/wrist-ur5e
 ```
 
 The download retains upstream licenses and verifies asset hashes. `--show-phone`
@@ -119,8 +117,9 @@ rig through forward kinematics, and RGB, depth and robot state share one physics
 state. Use `--motion hold` for a stationary joint target.
 The wrist viewer displays the captured RGB and depth alongside the robot.
 
-The models come from MuJoCo Menagerie. Robot adapters and exact joint/actuator
-contracts are documented in the developer guide. [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [Developer guide](docs/development.md)
+Both arms use MJCF and mesh assets maintained in Google DeepMind's MuJoCo
+Menagerie, pinned to an upstream commit. Robot adapters, model provenance and
+joint/actuator contracts are documented in the developer guide. [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [Developer guide](docs/development.md)
 
 ### Attach the camera to your own scene
 
@@ -155,7 +154,7 @@ calibration, poses, metadata and distinct clocks.
 ```python
 from iphone_mujoco.recording import ReplaySource
 
-with ReplaySource("recordings/wrist-reference6/episode") as source:
+with ReplaySource("recordings/wrist-panda/episode") as source:
     frame = source.poll().rgbd
     rgb, depth_m = frame.rgb, frame.depth_m
     K_rgb = frame.calibration.matrix

@@ -80,31 +80,29 @@ macOS 打开交互窗口时，将 `python` 换成 `mjpython`。示例底盘由�
 
 ![机械臂上安装的虚拟 iPhone 与腕部 RGB-D](docs/images/robot-wrist.gif)
 
-| `--robot` | 机械臂关节 | 相机父 body | 模型来源 |
+| `--robot` | 实验室机械臂 | 相机父 body | 末端配置 |
 |---|---|---|---|
-| `reference6` | `joint1`–`joint6` | `tool` | 包内教学模型 |
-| `reference7` | `joint1`–`joint7` | `tool` | 包内教学模型 |
-| `panda` | `joint1`–`joint7` | `hand` | 按需下载 Menagerie Franka Panda |
-| `ur5e` | 肩部旋转/俯仰、肘、三个腕部关节 | `wrist_3_link` | 按需下载 Menagerie UR5e |
+| `panda` | Franka Emika Panda，七轴 | `hand` | 平行夹爪 |
+| `ur5e` | Universal Robots UR5e，六轴 | `wrist_3_link` | 裸法兰 |
 
-先生成离线示例内参，再运行一段腕部采集。
-
-```bash
-iphone-mujoco export-lab --output recordings/demo-rig
-mjpython -m iphone_mujoco capture-wrist --robot reference6 \
-  --profile recordings/demo-rig/calibration.json --show-phone \
-  --duration 5 --fps 10 --output recordings/wrist-reference6
-```
-
-Linux/Windows 使用 `python -m iphone_mujoco`。将 `--robot` 换成 `reference7`
-即可使用另一台内置机械臂。官方机械臂先下载固定版本模型，再选择对应名称。
+先下载 Panda 模型，生成 synthetic 相机内参，再运行一段腕部采集。
 
 ```bash
 iphone-mujoco models --fetch panda
-iphone-mujoco models --fetch ur5e
+iphone-mujoco export-lab --output recordings/demo-rig
 mjpython -m iphone_mujoco capture-wrist --robot panda \
   --profile recordings/demo-rig/calibration.json --show-phone \
   --duration 5 --fps 10 --output recordings/wrist-panda
+```
+
+Linux/Windows 使用 `python -m iphone_mujoco`。六轴机械臂实验可选择 UR5e。
+每种模型首次下载后，后续运行会复用本地缓存。
+
+```bash
+iphone-mujoco models --fetch ur5e
+mjpython -m iphone_mujoco capture-wrist --robot ur5e \
+  --profile recordings/demo-rig/calibration.json --show-phone \
+  --duration 5 --fps 10 --output recordings/wrist-ur5e
 ```
 
 下载器保留上游许可证并校验文件。`--show-phone` 显示近似手机外壳。默认安装外参
@@ -113,7 +111,8 @@ mjpython -m iphone_mujoco capture-wrist --robot panda \
 `--motion hold` 可保持固定关节目标。
 腕部采集窗口也会在机器人场景旁显示本帧 RGB 与深度。
 
-官方模型来自 MuJoCo Menagerie，精确关节、执行器及适配约定见开发文档。
+两种机械臂均采用 Google DeepMind 维护的 MuJoCo Menagerie MJCF 与网格资源，
+固定上游提交。模型来源、关节、执行器及适配约定见开发文档。
 [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) · [开发文档](docs/development.md)
 
 ### 放入自己的实验场景
@@ -145,7 +144,7 @@ iphone-mujoco export-phone --output recordings/iphone.xml
 ```python
 from iphone_mujoco.recording import ReplaySource
 
-with ReplaySource("recordings/wrist-reference6/episode") as source:
+with ReplaySource("recordings/wrist-panda/episode") as source:
     frame = source.poll().rgbd
     rgb, depth_m = frame.rgb, frame.depth_m
     K_rgb = frame.calibration.matrix

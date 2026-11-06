@@ -134,7 +134,6 @@ motion. Attached cameras can simply render from their moving parent body.
 `wrist_camera_mjcf(..., show_phone=True)` adds the approximate phone shell at
 the optical mount. Its cosmetic geoms explicitly use zero mass and disabled
 contacts, including when a parent MJCF provides default geom mass. The
-Reference6/7 demonstration mounts face the initial floor targets from 0.4.0.
 Use an explicit saved mount JSON to reproduce a specific experiment rig.
 
 ## Clocks, sessions and freshness
@@ -208,14 +207,17 @@ cannot reproduce an arbitrary six-dimensional target.
 
 Optional `gripper_actuator_names`, `gripper_open`, `gripper_closed` arrays use
 actuator control values, not guessed joint angles. Panda uses its upstream
-0–255 range; reference arms use finger position servos; UR5e has no gripper.
+0–255 range; UR5e uses a bare flange.
 See [the custom robot example](../examples/custom_robot.py) for Python loading.
 Keep model/data and controller stepping on one simulation thread.
 
 ## Models, rigs and scope
 
-Official robot assets are downloaded separately at a pinned commit with file
-hash checks and original licenses. Use `IPHONE_MUJOCO_MODEL_CACHE` for a shared
+Public robot experiments use the seven-axis Franka Emika Panda with parallel
+gripper and the six-axis Universal Robots UR5e with bare flange. Both use MJCF
+and mesh assets maintained in Google DeepMind's MuJoCo Menagerie, pinned to
+commit `cda5236f98383f6fbaa4820c6b18dba892cd087f`, with file hash checks and
+original licenses. Use `IPHONE_MUJOCO_MODEL_CACHE` for a shared
 local cache; legacy `ASMAGIC_MUJOCO_MODEL_CACHE` and previous caches remain
 compatible. Caches are excluded from source and release distributions.
 

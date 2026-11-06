@@ -115,7 +115,8 @@ def wrist_frames(robot, count):
                 mujoco.mj_step(model, data)
             frame = sensor.render(data)
             image = render_overview(overview, model, data, view, frame)
-            frames.append(panel(image, frame, "iPhone MuJoCo / " + spec.name + " wrist camera",
+            name = "Franka Panda" if robot == "panda" else "Universal Robots UR5e"
+            frames.append(panel(image, frame, "iPhone MuJoCo / " + name,
                                 "Rigid link mount. RGB-D follows forward kinematics and joint motion."))
     return frames
 
@@ -155,10 +156,10 @@ def save_animation(frames, path, fps):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("recordings/readme-media"))
-    parser.add_argument("--robots", nargs="+", choices=("reference6", "reference7", "panda", "ur5e"),
-                        default=["reference6", "reference7"])
+    parser.add_argument("--robots", nargs="+", choices=("panda", "ur5e"),
+                        default=["panda", "ur5e"])
     parser.add_argument("--frames", type=int, default=32, help="Frames per lab/mobile clip")
-    parser.add_argument("--robot-frames", type=int, default=12, help="Frames per robot in the wrist montage")
+    parser.add_argument("--robot-frames", type=int, default=18, help="Frames per robot in the wrist montage")
     parser.add_argument("--fps", type=int, default=8)
     args = parser.parse_args()
     if not 4 <= args.frames <= 120 or not 4 <= args.robot_frames <= 60 or not 1 <= args.fps <= 30:

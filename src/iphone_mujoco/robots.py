@@ -1,7 +1,6 @@
 """Robot descriptions, pinned Menagerie assets, and extensible MJCF loading.
 
-The two reference arms are original teaching models, with illustrative inertias.
-UR5e and Panda use the unmodified official MuJoCo Menagerie asset files.
+UR5e and Panda use the unmodified Google DeepMind MuJoCo Menagerie asset files.
 """
 from __future__ import annotations
 
@@ -86,32 +85,24 @@ class RobotSpec:
 
 
 def list_robots() -> tuple[str, ...]:
-    return ("reference6", "reference7", "ur5e", "panda")
+    return ("panda", "ur5e")
 
 
 def get_robot(name: str, model_cache: Path | str | None = None) -> RobotSpec:
-    if name in ("reference6", "reference7"):
-        count = int(name[-1])
-        return RobotSpec(name, ASSETS / f"{name}.xml", tuple(f"joint{i}" for i in range(1, count + 1)),
-                         tuple(f"servo{i}" for i in range(1, count + 1)), "tcp",
-                         ((0.0, -0.65, 1.25, 0.0, -0.6, 0.0) if count == 6 else (0.0, -0.65, 0.2, 1.25, 0.0, -0.6, 0.0)),
-                         ("finger_left_servo", "finger_right_servo"), (0.04, 0.04), (0.0, 0.0),
-                         f"Original {count}-axis teaching arm; illustrative geometry, mass and inertia. Not a vendor dynamics model.",
-                         source="original-reference")
     cache = Path(model_cache).expanduser().resolve() if model_cache is not None else default_model_cache()
     if name == "ur5e":
         return RobotSpec(name, cache / "universal_robots_ur5e/ur5e.xml",
                          ("shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"),
                          ("shoulder_pan", "shoulder_lift", "elbow", "wrist_1", "wrist_2", "wrist_3"), "attachment_site",
                          (-1.5708, -1.5708, 1.5708, -1.5708, -1.5708, 0.0),
-                         description="Official MuJoCo Menagerie Universal Robots UR5e, bare flange (no gripper).",
+                         description="MuJoCo Menagerie Universal Robots UR5e, bare flange (no gripper).",
                          source=f"menagerie@{MENAGERIE_COMMIT}")
     if name == "panda":
         return RobotSpec(name, cache / "franka_emika_panda/panda.xml",
                          tuple(f"joint{i}" for i in range(1, 8)), tuple(f"actuator{i}" for i in range(1, 8)),
                          "asmagic_tcp", (0.0, 0.0, 0.0, -1.57079, 0.0, 1.57079, -0.7853),
                          ("actuator8",), (255.0,), (0.0,),
-                         "Official MuJoCo Menagerie Franka Emika Panda with parallel gripper; adapter TCP is 103.4 mm along hand +Z.",
+                         "MuJoCo Menagerie Franka Emika Panda with parallel gripper; adapter TCP is 103.4 mm along hand +Z.",
                          add_site_body="hand", add_site_pos=(0.0, 0.0, 0.1034), source=f"menagerie@{MENAGERIE_COMMIT}")
     raise ValueError(f"Unknown robot {name!r}; choose from {', '.join(list_robots())}, or load RobotSpec.from_json()")
 
@@ -197,13 +188,14 @@ def _resolve_xml_paths(root: ET.Element, parent: Path) -> None:
         include.set("file", str((parent / include.attrib["file"]).resolve()))
 
 
-def load_scene(robot: str | RobotSpec = "reference6", phone_xml: str | None = None, *, model_cache: Path | str | None = None,
+def load_scene(robot: str | RobotSpec = "panda", phone_xml: str | None = None, *, model_cache: Path | str | None = None,
                phone_parent_body: str | None = None) -> tuple[mujoco.MjModel, mujoco.MjData, RobotSpec]:
     """Compile robot and optional phone body; initialize vendor home keyframe.
 
     Custom MJCF keeps its own scene. Built-in models receive a floor, lighting,
-    and visible reference objects for RGB/depth experiments. Download official
-    models explicitly with fetch_menagerie() before loading them. Set
+    and visible reference objects for RGB/depth experiments. Download Menagerie
+    models explicitly with fetch_menagerie() before loading them. The default
+    is the Menagerie Franka Panda. Set
     phone_parent_body to rigidly attach a camera body to a named robot link;
     its local transform then follows the link through normal forward kinematics.
     """
