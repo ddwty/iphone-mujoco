@@ -78,6 +78,7 @@ jobs:
       MUJOCO_GL: glfw
       LIBGL_ALWAYS_SOFTWARE: '1'
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -109,6 +110,22 @@ jobs:
           np.testing.assert_allclose(depth[raw > 0], raw[raw > 0] * .0001, atol=5e-7)
           assert np.array_equal(np.isnan(depth), raw == 0)
           PY
+      - name: Run camera mounting examples and fuse a sequence
+        run: |
+          xvfb-run -a python examples/scene_camera.py --scenario mobile --headless --duration .2 --fps 10 --output "$RUNNER_TEMP/mobile-camera"
+          iphone-mujoco inspect-episode "$RUNNER_TEMP/mobile-camera/episode" --json
+          python examples/fuse_episode.py "$RUNNER_TEMP/mobile-camera/episode" --output "$RUNNER_TEMP/mobile-map" --stride 8
+          xvfb-run -a iphone-mujoco capture-wrist --robot reference6 --profile "$RUNNER_TEMP/phone-lab-smoke/capture-0000/calibration.json" --show-phone --headless --fast --duration .2 --fps 10 --output "$RUNNER_TEMP/visible-wrist"
+          iphone-mujoco inspect-episode "$RUNNER_TEMP/visible-wrist/episode" --json
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from iphone_mujoco.phone_scene import default_world_from_camera
+          from iphone_mujoco.wrist import WristCameraMount
+          WristCameraMount("camera_stand", default_world_from_camera(), camera_name="second_camera").save(Path(os.environ["RUNNER_TEMP"]) / "mount.json")
+          PY
+          xvfb-run -a python examples/scene_camera.py --scenario custom --scene src/iphone_mujoco/assets/scenes/phone_lab.xml --mount "$RUNNER_TEMP/mount.json" --headless --duration .2 --fps 10 --output "$RUNNER_TEMP/custom-camera"
+          iphone-mujoco inspect-episode "$RUNNER_TEMP/custom-camera/episode" --json
       - name: Retain synthetic observation for review
         if: always()
         uses: actions/upload-artifact@v4

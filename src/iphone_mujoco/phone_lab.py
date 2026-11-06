@@ -53,6 +53,22 @@ def _panel(image, width, title, footer):
     return np.asarray(panel)
 
 
+def update_rgbd_preview(viewer, frame, enabled=True):
+    """Display the captured RGB and metric-depth preview in a native viewer."""
+    viewport = viewer.viewport
+    if viewport is None or viewport.width <= 0 or viewport.height <= 0:
+        return
+    calibration = frame.calibration
+    width = max(120, min(600, int(viewport.width * .30), int((viewport.height-30)/1.85)))
+    rgb = _panel(frame.rgb, width, "VIRTUAL iPHONE / RGB", f"{calibration.width} x {calibration.height}  |  simulated")
+    depth = _panel(depth_preview(frame.depth_m), width, "DEPTH / meters", "0.15m near / 2.0m far | black invalid")
+    left = viewport.left + viewport.width - width - 12
+    bottom = viewport.bottom + 12
+    images = [(mujoco.MjrRect(left, bottom, depth.shape[1], depth.shape[0]), depth),
+              (mujoco.MjrRect(left, bottom+depth.shape[0]+10, rgb.shape[1], rgb.shape[0]), rgb)]
+    viewer.set_images(images if enabled else [])
+
+
 def _optical_pose(model, data):
     camera = model.camera("iphone_camera").id
     pose = np.eye(4)
@@ -238,16 +254,7 @@ def run_phone_lab(args, *, initial_keys=()):
                     last_capture_path = f"Saved {path.name} (see terminal)"
                     print(f"Saved: {path}", flush=True)
                 if viewer:
-                    viewport = viewer.viewport
-                    if viewport is not None and viewport.width > 0 and viewport.height > 0:
-                        width = max(120, min(600, int(viewport.width * .30), int((viewport.height-30)/1.85)))
-                        rgb = _panel(frame.rgb, width, "VIRTUAL iPHONE / RGB", f"{calibration.width} x {calibration.height}  |  simulated")
-                        depth = _panel(depth_preview(frame.depth_m), width, "DEPTH / meters", "0.15m near / 2.0m far | black invalid")
-                        left = viewport.left + viewport.width - width - 12
-                        bottom = viewport.bottom + 12
-                        images = [(mujoco.MjrRect(left, bottom, depth.shape[1], depth.shape[0]), depth),
-                                  (mujoco.MjrRect(left, bottom+depth.shape[0]+10, rgb.shape[1], rgb.shape[0]), rgb)]
-                        viewer.set_images(images if show_images else [])
+                    update_rgbd_preview(viewer, frame, enabled=show_images)
                     valid = np.isfinite(frame.depth_m)
                     depth_text = f"{np.nanmin(frame.depth_m):.2f}-{np.nanmax(frame.depth_m):.2f} m" if valid.any() else "no return"
                     viewer.set_texts([(mujoco.mjtFont.mjFONT_SHADOW, mujoco.mjtGridPos.mjGRID_TOPLEFT,

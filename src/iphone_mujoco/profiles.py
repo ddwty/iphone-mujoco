@@ -93,9 +93,9 @@ def phone_mjcf(calibration: CameraCalibration, *, body_name: str = "iphone",
     mocap_attr = ' mocap="true"' if mocap else ""
     return f'''<body name={quoteattr(body_name)}{mocap_attr}>
   <!-- APPROXIMATE VISUAL ONLY: physical dimensions, mass/inertia and lens mount are unmeasured. -->
-  <geom name={quoteattr(body_name+'_shell')} type="box" size="0.038 0.075 0.004" rgba="0.12 0.13 0.15 1" density="0" contype="0" conaffinity="0" group="{visual_group}"/>
-  <geom name={quoteattr(body_name+'_screen')} type="box" pos="0 0 0.0041" size="0.035 0.071 0.0002" rgba="0.025 0.04 0.065 1" density="0" contype="0" conaffinity="0" group="{visual_group}"/>
-  <geom name={quoteattr(body_name+'_lens')} type="cylinder" pos="0.020 0.052 -0.0048" size="0.006 0.001" rgba="0.05 0.13 0.23 1" density="0" contype="0" conaffinity="0" group="{visual_group}"/>
+  <geom name={quoteattr(body_name+'_shell')} type="box" size="0.038 0.075 0.004" rgba="0.12 0.13 0.15 1" density="0" mass="0" contype="0" conaffinity="0" group="{visual_group}"/>
+  <geom name={quoteattr(body_name+'_screen')} type="box" pos="0 0 0.0041" size="0.035 0.071 0.0002" rgba="0.025 0.04 0.065 1" density="0" mass="0" contype="0" conaffinity="0" group="{visual_group}"/>
+  <geom name={quoteattr(body_name+'_lens')} type="cylinder" pos="0.020 0.052 -0.0048" size="0.006 0.001" rgba="0.05 0.13 0.23 1" density="0" mass="0" contype="0" conaffinity="0" group="{visual_group}"/>
   {camera}
   <site name={quoteattr(body_name+'_optical_center')} pos="0.020 0.052 -0.005" size="0.003" rgba="0.1 0.8 1 0.4" group="3"/>
 </body>'''

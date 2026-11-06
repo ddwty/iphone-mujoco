@@ -41,6 +41,18 @@ results. Do not repeatedly run unrelated tests or infer hardware accuracy from
 a successful build. Installed-wheel contracts and a Linux software-rendered
 RGB-D smoke run in [CI](workflows/ci.yml).
 
+Regenerate the README animations from the actual simulator with a graphics
+context. Each GIF combines an overview, sensor RGB and a fixed-range depth
+preview. The default montage uses the included reference arms.
+
+```bash
+python tools/render_readme_media.py --output recordings/readme-media
+```
+
+Fetch Panda/UR5e first and add `--robots reference6 reference7 panda ur5e` to
+include all four arms. Review generated media before copying it into
+`docs/images/`. Keep each public image below the source export's 2 MB limit.
+
 ## Source and compatibility
 
 Keep environments, model caches, recordings, private calibration/provenance,

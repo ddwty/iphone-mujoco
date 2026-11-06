@@ -1,6 +1,6 @@
 """iPhone RGB-D cameras, recordings and robot adapters for MuJoCo."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .camera import CameraCalibration, MujocoRGBDCamera, RGBDFrame
 from .profiles import DeviceProfile, phone_mjcf, write_phone_module

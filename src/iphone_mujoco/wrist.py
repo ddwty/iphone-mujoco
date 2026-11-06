@@ -14,7 +14,8 @@ import numpy as np
 from PIL import Image
 
 from .camera import CameraCalibration, MujocoRGBDCamera, RGBDFrame, camera_mjcf
-from .geometry import validate_transform
+from .geometry import CV_TO_MUJOCO_CAMERA, validate_transform
+from .profiles import phone_mjcf
 from .recording import RecordingWriter
 from .streams import LiveSample
 from .virtual_device import quantize_depth
@@ -61,7 +62,7 @@ def default_wrist_mount(robot: str) -> WristCameraMount:
         pose[:3, 3] = [.07, .12, 0.]
         parent = "wrist_3_link"
     elif robot in ("reference6", "reference7"):
-        pose[:3, :3] = [[0, 0, 1], [-1, 0, 0], [0, -1, 0]]
+        pose[:3, :3] = np.diag([1., -1., -1.])
         pose[:3, 3] = [.05, .06, .05]
         parent = "tool"
     else:
@@ -69,8 +70,14 @@ def default_wrist_mount(robot: str) -> WristCameraMount:
     return WristCameraMount(parent, pose)
 
 
-def wrist_camera_mjcf(calibration: CameraCalibration, mount: WristCameraMount) -> str:
-    """Massless, geometry-free optical rig; attaching it adds no physical inertia."""
+def wrist_camera_mjcf(calibration: CameraCalibration, mount: WristCameraMount, *,
+                      show_phone: bool = False) -> str:
+    """Rigid optical rig with optional approximate, massless phone cosmetics.
+
+    The optical transform is identical with either appearance. The visible
+    phone reuses the generic shell and lens offset from ``phone_mjcf`` and adds
+    no physical load or contacts. Real mounting and payload require measurement.
+    """
     optical = mount.parent_from_camera
     quaternion = np.empty(4)
     mujoco.mju_mat2Quat(quaternion, np.ascontiguousarray(optical[:3, :3]).ravel())
@@ -80,6 +87,22 @@ def wrist_camera_mjcf(calibration: CameraCalibration, mount: WristCameraMount) -
     # The parent rig uses CV axes; MuJoCo cameras look down local -Z.
     camera.set("quat", "0 1 0 0")
     body.append(camera)
+    if show_phone:
+        phone = ET.fromstring(phone_mjcf(calibration,
+                                        body_name=mount.camera_name + "_phone",
+                                        camera_name=mount.camera_name + "_visual_camera"))
+        visual_camera = phone.find("camera")
+        phone_from_optical = np.eye(4)
+        phone_from_optical[:3, 3] = np.fromstring(visual_camera.get("pos", "0 0 0"), sep=" ")
+        rotation = np.empty(9)
+        mujoco.mju_quat2Mat(rotation, np.fromstring(visual_camera.get("quat", "1 0 0 0"), sep=" "))
+        phone_from_optical[:3, :3] = rotation.reshape(3, 3)
+        optical_from_phone = np.linalg.inv(phone_from_optical @ CV_TO_MUJOCO_CAMERA)
+        mujoco.mju_mat2Quat(quaternion, np.ascontiguousarray(optical_from_phone[:3, :3]).ravel())
+        phone.set("pos", " ".join(map(str, optical_from_phone[:3, 3])))
+        phone.set("quat", " ".join(map(str, quaternion)))
+        phone.remove(visual_camera)
+        body.append(phone)
     return ET.tostring(body, encoding="unicode")
 
 
@@ -202,6 +225,7 @@ def capture_command(args):
     from .control import CartesianTeleoperator
     from .virtual_device import VirtualPhonePublisher
     from .cli import _viewer
+    from .phone_lab import update_rgbd_preview
     if args.fast and (args.ip or args.input_episode):
         raise ValueError("--fast is for offline demo/hold motion; live/replayed input requires wall-clock pacing")
     calibration = CameraCalibration.load(args.profile)
@@ -209,8 +233,10 @@ def capture_command(args):
     if args.robot in ("panda", "ur5e"):
         fetch_menagerie(args.robot, cache_dir=args.model_cache)
     selected = RobotSpec.from_json(args.robot) if args.robot.endswith(".json") else args.robot
-    model, data, spec = load_scene(selected, phone_xml=wrist_camera_mjcf(calibration, mount),
-                                   phone_parent_body=mount.parent_body, model_cache=args.model_cache)
+    model, data, spec = load_scene(
+        selected,
+        phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=getattr(args, "show_phone", False)),
+        phone_parent_body=mount.parent_body, model_cache=args.model_cache)
     if args.fps > 1 / model.opt.timestep:
         raise ValueError("Capture FPS cannot exceed the simulation physics rate")
     if spec.source != "custom":
@@ -267,6 +293,7 @@ def capture_command(args):
                         publisher.publish(frame)
                     next_capture += 1 / args.fps
                     if viewer:
+                        update_rgbd_preview(viewer, frame)
                         viewer.sync()
                 if not args.fast:
                     delay = pace_started + data.time - time.monotonic()

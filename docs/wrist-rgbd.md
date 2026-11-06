@@ -1,139 +1,193 @@
-# 采集与 iPhone 接口一致的腕部 RGB-D
+# 腕部 RGB-D 与机器人状态采集
 
-`capture-wrist` 把相机刚性挂到机械臂末端。相机的世界位姿由机器人关节状态和固定安装外参计算，RGB、深度、关节状态都来自同一个 `mjData` 时刻。
+相机刚性安装到机械臂末端。每帧 RGB、深度、关节角、速度与控制量取自同一个
+`mjData` 状态，相机世界位姿由正向运动学和安装外参得到。
 
-先用 `calibrate --ip YOUR_IP --output profiles/my-iphone.json` 保存自己的真机内参。当前公开演示配置的 RGB 是 **640×480**，深度是 **256×192**；具体真机尺寸以收到的标定为准。采集器使用完整 `fx/fy/cx/cy`，深度单独使用对应分辨率的 K。更改手机拍摄模式后，先在 asMagic Stream 开启发送，再重新运行 `calibrate` 获取参数。
+![虚拟 iPhone 腕部相机与 RGB-D](images/robot-wrist.gif)
 
-## 开始采集
+## 从内置机械臂开始
 
-在 PhoneMujuco 根目录运行：
+在项目根目录生成 synthetic 示例内参，随后运行第一段采集。
 
 ```bash
-.venv/bin/mjpython -m iphone_mujoco capture-wrist \
-  --robot panda \
-  --profile profiles/my-iphone.json \
-  --duration 5 --fps 30 \
-  --output recordings/wrist-panda
+iphone-mujoco export-lab --output recordings/demo-rig
+mjpython -m iphone_mujoco capture-wrist \
+  --robot reference6 --profile recordings/demo-rig/calibration.json \
+  --show-phone --duration 5 --fps 10 \
+  --output recordings/wrist-reference6
 ```
 
-默认执行小幅度的关节演示运动，相机随腕部移动。使用 `--robot ur5e` 切换机械臂；`--motion hold` 保持模型起始目标。所有输出目录必须是新的或空的。
+macOS 使用 `mjpython` 打开窗口，Linux/Windows 使用 `python`。
+`--show-phone` 显示近似手机外壳，外观几何采用零密度并关闭接触。
+默认执行小幅关节演示运动，`--motion hold` 使用固定关节目标。
+每次运行使用新的或空的输出目录。
 
-仅生成数据、关闭交互窗口时：
+| 机械臂 | `--robot` | 默认安装 body | 夹爪 | 模型 |
+|---|---|---|---|---|
+| 六轴教学臂 | `reference6` | `tool` | 双指位置控制 | 包内原始教学模型 |
+| 七轴教学臂 | `reference7` | `tool` | 双指位置控制 | 包内原始教学模型 |
+| Franka Panda | `panda` | `hand` | 上游 0–255 控制量 | Menagerie 按需下载 |
+| UR5e | `ur5e` | `wrist_3_link` | 裸法兰 | Menagerie 按需下载 |
+
+官方模型先运行 `iphone-mujoco models --fetch panda` 或
+`iphone-mujoco models --fetch ur5e`，随后更改 `--robot`。模型固定上游提交、逐文件
+校验并保留许可证。
+
+这些数据可作为眼在手目标检测、视觉伺服、视点选择和轨迹学习的观测输入。
+训练或控制算法可以通过每帧位姿、状态与 K 将图像对应到机器人和场景。
+
+## 批量生成和真实内参
+
+离线生成数据时可以关闭交互窗口并取消真实时间等待。
 
 ```bash
-.venv/bin/python -m iphone_mujoco capture-wrist \
-  --robot panda --profile profiles/my-iphone.json \
-  --headless --fast --duration 5 --fps 30 \
+python -m iphone_mujoco capture-wrist \
+  --robot reference7 --profile recordings/demo-rig/calibration.json \
+  --show-phone --headless --fast --duration 5 --fps 30 \
   --output recordings/wrist-offline
 ```
 
-`fps` 是每个**仿真秒**采多少帧。渲染、压缩、写盘可能比真实时间慢；采集器逐仿真步保存完整序列，记录实际仿真时间戳和运行耗时。`--headless` 仍需要可用的 OpenGL；Linux 服务器可配置 MuJoCo EGL。
+`--fps` 表示每个仿真秒采多少帧，采样时间保存在每帧状态中。渲染、压缩和写盘
+决定实际运行耗时。`--headless` 继续使用 OpenGL，Linux 服务器可配置 EGL 或
+Xvfb/GLFW。
 
-## 用 iPhone 遥控时同步采集腕部图像
-
-iPhone 打开 **Robot control → Through Mac** 并发送，然后运行：
+使用真实 iPhone 内参时，先在 asMagic Stream 开启 RGB/深度发送，然后采集 K。
 
 ```bash
-.venv/bin/mjpython -m iphone_mujoco capture-wrist \
+python -m pip install -e '.[live]'
+iphone-mujoco calibrate --ip YOUR_IP --output profiles/my-iphone.json
+```
+
+将上述采集命令的 `--profile` 换成此文件。默认公开示例 RGB 为 640×480，深度为
+256×192，真机尺寸取决于当前配置。更换手机或拍摄设置后重新采集标定。
+
+## 手机控制机械臂并采集腕部图像
+
+iPhone 打开 **Robot control → Through Mac** 并发送。连接后先松开 Square，
+再按住移动，松开后保持当前目标。
+
+```bash
+mjpython -m iphone_mujoco capture-wrist \
   --robot panda --profile profiles/my-iphone.json \
-  --ip YOUR_IP --duration 0 \
+  --show-phone --ip YOUR_IP --duration 0 \
   --output recordings/wrist-phone-control
 ```
 
-连接后先松开 Square，再按住移动，松开保持；Ctrl-C 结束并关闭录制。
-这里由 iPhone 提供控制输入，腕部 RGB-D 来自 MuJoCo 渲染。
-asMagic 当前 Robot control 页本身只发送位姿和控制量。
+Ctrl-C 结束并关闭录制。此工作流中手机提供控制输入，MuJoCo 提供腕部 RGB-D。
+当前 App 的 Robot control 页发送位姿和控制量，Stream 页发送相机观测。
 
-也可以用已经录好的遥控输入生成仿真图像：
+使用已经录好的遥控输入生成仿真图像也可以复现同一输入序列。
 
 ```bash
-.venv/bin/mjpython -m iphone_mujoco capture-wrist \
+mjpython -m iphone_mujoco capture-wrist \
   --robot panda --profile profiles/my-iphone.json \
-  --input-episode recordings/my-teleoperation --duration 0 \
+  --show-phone --input-episode recordings/my-teleoperation --duration 0 \
   --output recordings/wrist-from-input
 ```
 
-实时/回放输入使用本机时钟检查新鲜度，并保留控制器的速度、关节和断流限制。
-渲染计算量会影响运行速度，因此这类数据不应直接作为真实系统延迟测量。
-该入口当前映射 Square、Cross 和夹爪；完整机械臂按钮实验可使用原有 `teleop` 命令。
+实时和回放输入保留速度、关节及断流限制，按本机时钟检查新鲜度。
+该入口映射 Square、Cross 和夹爪，其他机械臂按钮实验使用 `teleop` 命令。
 
-## 输出数据
+## 读取输出
 
 ```text
-wrist-panda/
-  rgb/00000000.png          # RGB uint8，640×480
-  depth/00000000.png        # 原始深度 uint16，256×192
-  calibration.json         # 可由 CameraCalibration.load 直接读取
-  camera_info.json         # RGB K、深度 K、单位、时间约定和来源
-  mount.json               # 腕部到光学相机的固定外参及是否实测
-  states.jsonl             # 每帧时间、关节角/速度、控制量、相机位姿
-  episode/                 # 与真实 iPhone 录制相同的 NPZ/JSON episode
+wrist-reference6/
+  rgb/00000000.png          # 无损 RGB uint8
+  depth/00000000.png        # 原始 UInt16 深度
+  calibration.json         # RGB K 与深度尺寸
+  camera_info.json         # RGB/depth K、单位、来源与时间约定
+  mount.json               # 光学相机到父 link 的固定变换及实测标记
+  states.jsonl             # 时间、关节角/速度、控制量、光学位姿
+  episode/                 # 统一 NPZ/JSON 数据格式
   preview_points.ply       # 第一帧的相机坐标点云
-  run.json                 # 实际帧数、仿真时间、运行耗时
+  run.json                 # 帧数、仿真时间和运行耗时
 ```
 
-同一编号的 RGB、深度、状态是一帧。RGB PNG 保存无损 RGB；深度 PNG 保存数值，**不要当作 8 位灰度预览来读取**。
-
-| 数据 | 约定 |
-|---|---|
-| RGB | `uint8 (480, 640, 3)`，RGB 通道，原始相机方向 |
-| 原始深度 PNG | `uint16 (192, 256)`，默认每单位 `0.0001 m` |
-| 米制深度 | `depth_m = raw_depth × meters_per_unit`，无效值为 NaN |
-| 无返回深度 | PNG 中为 0；65535 保留为饱和码，不生成有效深度 |
-| 深度定义 | 光轴 Z 深度，单位米 |
-| 相机局部坐标 | X 向右、Y 向下、Z 向前 |
-| `world_from_camera` | 从上述光学坐标到 MuJoCo Z-up 世界的 4×4 矩阵 |
-| 时间 | 仿真秒，与关节状态的 `simulation_time` 相同 |
-
-读取 PNG：
-
-```python
-import json
-import numpy as np
-from PIL import Image
-
-root = "recordings/wrist-panda"
-info = json.load(open(root + "/camera_info.json"))
-rgb = np.array(Image.open(root + "/rgb/00000000.png"))
-raw_depth = np.array(Image.open(root + "/depth/00000000.png"))
-depth_m = raw_depth.astype(np.float32) * info["depth"]["meters_per_unit"]
-depth_m[raw_depth == 0] = np.nan
-```
-
-推荐通过统一数据接口读取，这样真实和仿真都得到 `RGBDFrame`：
+同一编号的图像与状态关联到一帧。用统一 API 读取时，可以同时获得 K、米制深度、
+世界位姿与机器人状态。
 
 ```python
 from iphone_mujoco.recording import ReplaySource
 
-with ReplaySource("recordings/wrist-panda/episode") as source:
+with ReplaySource("recordings/wrist-reference6/episode") as source:
     frame = source.poll().rgbd
     rgb, depth_m = frame.rgb, frame.depth_m
     K_rgb = frame.calibration.matrix
     K_depth = frame.calibration.depth_calibration().matrix
-    camera_pose = frame.world_from_camera
+    world_from_camera = frame.world_from_camera
     qpos = frame.metadata["robot_state"]["qpos"]
-    cloud = frame.point_cloud(world=True)
+    world_points = frame.point_cloud(world=True)
 ```
 
-这里 `ReplaySource` 默认逐帧读取、不等待。如果设置 `realtime=True`，它按当时本机
-接收/写盘间隔等待；如需按仿真速度播放，应使用每帧 `timestamp` 中的仿真时间。
+| 数据 | 约定 |
+|---|---|
+| RGB | `uint8 (H,W,3)`，RGB 通道，原始相机方向 |
+| 深度 PNG | `uint16`，通过 `camera_info.json` 读取每单位米数 |
+| 深度定义 | 光轴 Z，单位米，无效米制值为 NaN |
+| 无返回 | PNG 中为 0，65535 保留 |
+| 相机坐标 | X 右、Y 下、Z 前 |
+| `world_from_camera` | 光学相机坐标到 MuJoCo Z-up 世界的 4×4 矩阵 |
+| 时间 | 仿真秒，与对应状态的 `simulation_time` 相同 |
 
-如需已有 PyPI `asmagic` SDK 接收仿真相机，可在采集命令增加
-`--publish tcp://127.0.0.1:18000`。接收仍使用
-`asmagic.ARDataSubscriber("127.0.0.1", port=18000)`；复用既有协议和 SDK。
-此路径的 JPEG 使用有损编码，而数据集 RGB PNG 保持无损。
+直接读取深度 PNG 时保留其 16 位数值，并使用保存的 scale。
 
-## 安装外参与传感器模型
+```python
+import json
+from pathlib import Path
+import numpy as np
+from PIL import Image
 
-`mount.json` 的 `parent_from_camera` 表示
-`T_world_camera = T_world_parent × T_parent_camera`。
-默认 Panda 挂在 `hand`，UR5e 挂在 `wrist_3_link`；都朝向初始工作台。
-默认固定外参标记为 `measured=false`，是演示安装。
-真实 iPhone 安装到手腕后，需要测量/手眼标定，再用 `--mount measured-mount.json` 读取。
+root = Path("recordings/wrist-reference6")
+info = json.loads((root / "camera_info.json").read_text())
+raw = np.asarray(Image.open(root / "depth/00000000.png"))
+depth_m = raw.astype(np.float32) * info["depth"]["meters_per_unit"]
+depth_m[raw == 0] = np.nan
+```
 
-只挂光学 rig，不添加近似手机外壳，以免遮住镜头或给机器人加入未经测量的质量。
-如需真实手机的负载动力学，应另外加入测量后的外形、质量和惯量。
+`ReplaySource` 默认逐帧读取。`realtime=True` 使用录制时的本机接收/写盘间隔，
+需要按仿真速度处理时使用各帧的仿真时间。
 
-当前与 iPhone 对齐的是数据接口、K、图像尺寸、深度量化单位和坐标约定。
-RGB-D 是理想渲染，未模拟 LiDAR 噪声、滚动快门、曝光、畸变与真实置信度。
-本地渲染测试验证了同帧关联和单位；真实安装外参及真实传感器误差需要实测。
+在采集命令追加 `--publish tcp://127.0.0.1:18000`，可让已有 PyPI SDK 订阅虚拟
+相机。接收端使用 `asmagic.ARDataSubscriber("127.0.0.1", port=18000)`。
+该 wire 路径使用 JPEG，数据集中的 RGB PNG 保持无损。
+
+## 实测安装外参与自定义机器人
+
+`parent_from_camera` 将 CV 光学相机坐标映射到父 link 坐标。
+
+```text
+T_world_camera = T_world_parent × T_parent_camera
+```
+
+默认演示安装朝向各机械臂的初始目标区域，并标记为 `measured=false`。
+例如六轴教学臂的默认 mount 文件包含以下结构。
+
+```json
+{
+  "parent_body": "tool",
+  "parent_from_camera": [
+    [1, 0, 0, 0.05],
+    [0, -1, 0, 0.06],
+    [0, 0, -1, 0.05],
+    [0, 0, 0, 1]
+  ],
+  "camera_name": "wrist_camera",
+  "measured": false
+}
+```
+
+真实安装先进行测量或手眼标定，再使用 `--mount measured-mount.json`。
+自定义机械臂需要 adapter JSON 和显式 mount。
+
+```bash
+mjpython -m iphone_mujoco capture-wrist \
+  --robot path/to/adapter.json --mount path/to/mount.json \
+  --profile profiles/my-iphone.json --show-phone \
+  --duration 5 --fps 10 --output recordings/custom-wrist
+```
+
+执行器类型、TCP 和夹爪适配约定见开发文档。[机器人适配](development.md#adding-a-robot)
+
+近似手机外形用于观察安装位置。实际负载动力学需要实测质量、惯量和外形。
+理想 RGB-D 渲染尚需结合真实 LiDAR 噪声、曝光、滚动快门、畸变和置信度模型，
+才能开展对应的传感器误差实验。

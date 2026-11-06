@@ -131,6 +131,12 @@ The camera follows robot forward kinematics. `move_body=True` is for a dedicated
 static/mocap phone body; do not teleport a jointed robot to reproduce phone
 motion. Attached cameras can simply render from their moving parent body.
 
+`wrist_camera_mjcf(..., show_phone=True)` adds the approximate phone shell at
+the optical mount. Its cosmetic geoms explicitly use zero mass and disabled
+contacts, including when a parent MJCF provides default geom mass. The
+Reference6/7 demonstration mounts face the initial floor targets from 0.4.0.
+Use an explicit saved mount JSON to reproduce a specific experiment rig.
+
 ## Clocks, sessions and freshness
 
 | Clock | Meaning |
@@ -218,7 +224,7 @@ measured hand-eye/extrinsic calibration; mass, inertia and lens mounting remain
 unknown until measured. Ideal rendering does not model LiDAR noise/confidence,
 distortion, rolling shutter, exposure or hardware latency.
 
-The lab is static camera-test geometry. Damped Jacobian IK and position servos
+The `phone-lab` scene contains static camera-test geometry. Damped Jacobian IK and position servos
 provide bounded simulation targets, with potentially substantial moving-target
 residuals. There is no hardware driver, motion planner or collision avoidance.
 IMU, hand/body/face retargeting and other SDK signals need explicit simulator

@@ -2,7 +2,7 @@ include LICENSE README.md README.zh-CN.md THIRD_PARTY_NOTICES.md
 include .github/CONTRIBUTING.md .github/SECURITY.md
 include .gitignore .gitattributes .editorconfig
 include *.command
-recursive-include docs *.md *.svg *.png *.jpg *.webp
+recursive-include docs *.md *.svg *.png *.jpg *.gif *.webp
 recursive-include examples *.py *.json *.xml
 recursive-include tools *.py
 recursive-include tests *.py *.json *.xml
