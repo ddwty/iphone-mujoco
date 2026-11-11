@@ -10,20 +10,20 @@ Forward kinematics and the mount transform determine the camera world pose.
 
 ## Start with Franka Panda
 
-Download the Panda model, export a camera profile and start collecting.
+Download the Panda model and select the mounted phone.
 
 ```bash
 iphone-mujoco models --fetch panda
-iphone-mujoco export-lab --output recordings/demo-rig
 mjpython -m iphone_mujoco capture-wrist \
-  --robot panda --profile recordings/demo-rig/calibration.json \
+  --robot panda --device iphone-17-pro --region cn --zoom 1 \
+  --resolution 640x480 --depth-resolution 256x192 \
   --show-phone --duration 5 --fps 10 \
   --output recordings/wrist-panda
 ```
 
 Open the viewer with `mjpython` on macOS or `python` on Linux/Windows.
-`--show-phone` displays the phone shell. `--motion hold` keeps a fixed joint
-target. The default motion makes small joint movements.
+`--show-phone` displays the selected phone and its wrist support.
+`--motion hold` keeps a fixed joint target. The default motion makes small joint movements.
 Choose a new or empty output directory for each run.
 
 | Arm | `--robot` | Camera parent body | End effector | Model |
@@ -40,36 +40,61 @@ Download UR5e and select it with `--robot`.
 ```bash
 iphone-mujoco models --fetch ur5e
 python -m iphone_mujoco capture-wrist \
-  --robot ur5e --profile recordings/demo-rig/calibration.json \
+  --robot ur5e --device iphone-17-pro-max --region cn --zoom 0.5 \
   --show-phone --headless --fast --duration 5 --fps 10 \
   --output recordings/wrist-ur5e
 ```
 
-## Batch collection and device intrinsics
+The UR5e bracket connects the flange to the phone clamp, with the rear
+lens-cover plane flush with the TCP plane. Selecting another lens keeps the
+phone body and bracket in place. A crop preset, such as 2× or 8×, keeps the
+same physical lens center.
+
+## Camera configuration and batch collection
+
+Save a configuration to use the same model, optics and output dimensions across
+runs. Inspect the available models and source specifications with
+`iphone-mujoco devices --device iphone-17-pro`.
+
+```bash
+iphone-mujoco configure-camera --device iphone-17-pro --region cn --zoom 4 \
+  --resolution 1280x960 --depth-resolution 256x192 \
+  --output profiles/iphone-17-pro-telephoto.json
+```
 
 Use `--headless --fast` to generate data without a window or wall-clock pacing.
 
 ```bash
 python -m iphone_mujoco capture-wrist \
-  --robot panda --profile recordings/demo-rig/calibration.json \
+  --robot panda --profile profiles/iphone-17-pro-telephoto.json \
   --show-phone --headless --fast --duration 5 --fps 30 \
   --output recordings/wrist-offline
 ```
 
 `--fps` counts frames per simulation second. Each state records its sampling
 time. Headless rendering uses OpenGL. Linux servers can use EGL or Xvfb/GLFW.
+Add `--payload` to include the phone's published regional mass and estimated
+uniform-box inertia. Phone and support geometry have no contact collisions;
+the case and mount mass must be modeled separately for a physical payload.
 
-To use iPhone intrinsics, enable RGB/depth sending on the asMagic Stream page
-and capture K.
+Public presets use the published equivalent focal length to define an ideal
+pinhole field of view. For the K from your own iPhone, enable RGB/depth in AR
+mode on the asMagic Stream page and capture it:
 
 ```bash
 python -m pip install -e '.[live]'
-iphone-mujoco calibrate --ip YOUR_IP --output profiles/my-iphone.json
+iphone-mujoco calibrate --ip YOUR_IP --device iphone-17-pro --region cn \
+  --output profiles/my-iphone.json
 ```
 
-Pass that file with `--profile`. The example profile uses 640×480 RGB and
-256×192 depth. Device dimensions depend on the capture settings. Capture a new
-calibration after changing phones or camera settings.
+Pass that file with `--profile`. It binds the received AR main-camera K at 1×
+to the chosen phone. Same-aspect full-raster resizing is supported; requesting
+another device, lens or zoom is rejected. Capture a new calibration after
+changing phones or capture settings. The app's camera-only RGB stream supports
+lens selection but currently provides neither K nor depth.
+
+The [camera guide](phone-lab.md#camera-configuration) covers lens presets,
+output resolution, calibration sources and module export.
 
 ## Control the arm with an iPhone
 
@@ -117,7 +142,9 @@ wrist-panda/
 ```
 
 Matching indices identify the image and state from one frame. Read them with
-`ReplaySource`.
+`ReplaySource`. For a selected device, `camera_info.json` and each frame's
+metadata also retain `camera_configuration`: model, lens, zoom, region,
+calibration source and specification references.
 
 ```python
 from iphone_mujoco.recording import ReplaySource
@@ -154,7 +181,7 @@ root = Path("recordings/wrist-panda")
 info = json.loads((root / "camera_info.json").read_text())
 raw = np.asarray(Image.open(root / "depth/00000000.png"))
 depth_m = raw.astype(np.float32) * info["depth"]["meters_per_unit"]
-depth_m[raw == 0] = np.nan
+depth_m[(raw == 0) | (raw == 65535)] = np.nan
 ```
 
 `ReplaySource` reads frames immediately by default. `realtime=True` follows
@@ -174,8 +201,11 @@ coordinates.
 T_world_camera = T_world_parent × T_parent_camera
 ```
 
-Default cameras face the initial target area. Panda uses the following mount.
-`measured` records whether the extrinsics have been measured.
+With a device configuration, the mount describes the **wide-camera reference**.
+The phone pose follows that reference and stays fixed while another lens is
+selected. Without a device selection, it describes the generic optical camera
+directly. Panda uses the following reference mount. `measured` records whether
+the extrinsics have been measured.
 
 ```json
 {
@@ -192,7 +222,10 @@ Default cameras face the initial target area. Panda uses the following mount.
 ```
 
 Measure the physical mounting transform or run hand-eye calibration, then load
-it with `--mount measured-mount.json`. A custom arm also needs an adapter JSON.
+it with `--mount measured-mount.json`. The catalog places cameras at mechanical
+lens-cover centers. A measured phone-body ← CV-camera transform can override
+that estimate through `configuration.metadata["phone_from_camera"]`.
+A custom arm also needs an adapter JSON.
 
 ```bash
 mjpython -m iphone_mujoco capture-wrist \

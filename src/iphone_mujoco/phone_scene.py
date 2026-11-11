@@ -15,7 +15,7 @@ import numpy as np
 
 from .camera import CameraCalibration
 from .geometry import CV_TO_MUJOCO_CAMERA
-from .profiles import phone_mjcf, write_phone_module
+from .profiles import phone_mjcf, configured_phone_mjcf, write_phone_module
 
 
 SCENE_PATH = Path(__file__).parent / "assets" / "scenes" / "phone_lab.xml"
@@ -41,8 +41,12 @@ def default_world_from_camera() -> np.ndarray:
     return pose
 
 
-def _phone_body(calibration: CameraCalibration) -> ET.Element:
-    body = ET.fromstring(phone_mjcf(calibration, mocap=True))
+def _phone_body(calibration: CameraCalibration, configuration=None) -> ET.Element:
+    if configuration:
+        module = ET.fromstring(configured_phone_mjcf(configuration, mocap=True))
+        body = module.find("worldbody/body")
+    else:
+        body = ET.fromstring(phone_mjcf(calibration, mocap=True))
     # Keep the portable file visible in MuJoCo's default groups. The interactive
     # application can move these named cosmetics to a sensor-hidden group.
     for geom in body.iter("geom"):
@@ -53,7 +57,14 @@ def _phone_body(calibration: CameraCalibration) -> ET.Element:
     rotation = np.empty(9)
     mujoco.mju_quat2Mat(rotation, np.fromstring(camera.get("quat", "1 0 0 0"), sep=" "))
     body_from_camera[:3, :3] = rotation.reshape(3, 3)
-    desired_body = default_world_from_camera() @ CV_TO_MUJOCO_CAMERA @ np.linalg.inv(body_from_camera)
+    if configuration:
+        from .devices import get_device
+        # The lab placement is anchored to the body through its main camera.
+        # Selecting another lens must not translate the phone or stand.
+        desired_body = default_world_from_camera() @ np.linalg.inv(
+            get_device(configuration.device_id).phone_from_camera("wide"))
+    else:
+        desired_body = default_world_from_camera() @ CV_TO_MUJOCO_CAMERA @ np.linalg.inv(body_from_camera)
     quaternion = np.empty(4)
     mujoco.mju_mat2Quat(quaternion, np.ascontiguousarray(desired_body[:3, :3]).ravel())
     body.set("pos", " ".join(f"{value:.17g}" for value in desired_body[:3, 3]))
@@ -61,7 +72,7 @@ def _phone_body(calibration: CameraCalibration) -> ET.Element:
     return body
 
 
-def _scene_tree(calibration: CameraCalibration) -> ET.Element:
+def _scene_tree(calibration: CameraCalibration, configuration=None) -> ET.Element:
     root = ET.parse(SCENE_PATH).getroot()
     world = root.find("worldbody")
     if world is None:
@@ -69,7 +80,13 @@ def _scene_tree(calibration: CameraCalibration) -> ET.Element:
     previous = world.find("body[@name='iphone']")
     if previous is not None:
         world.remove(previous)
-    world.append(_phone_body(calibration))
+    if configuration:
+        module = ET.fromstring(configured_phone_mjcf(configuration))
+        assets = root.find("asset")
+        if assets is None:
+            assets = ET.SubElement(root, "asset")
+        assets.extend(module.find("asset"))
+    world.append(_phone_body(calibration, configuration))
     visual = root.find("visual/global")
     if visual is not None:
         visual.set("offwidth", str(max(640, calibration.width)))
@@ -77,16 +94,18 @@ def _scene_tree(calibration: CameraCalibration) -> ET.Element:
     return root
 
 
-def load_phone_lab(calibration: CameraCalibration | None = None) -> tuple[mujoco.MjModel, mujoco.MjData]:
+def load_phone_lab(calibration: CameraCalibration | None = None, *, configuration=None) -> tuple[mujoco.MjModel, mujoco.MjData]:
     """Load the tabletop, test targets, stand and mocap iPhone camera module."""
-    root = _scene_tree(calibration or demo_calibration())
+    if configuration and calibration and calibration != configuration.calibration:
+        raise ValueError("Configuration and camera calibration must match")
+    root = _scene_tree(configuration.calibration if configuration else calibration or demo_calibration(), configuration)
     model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     return model, data
 
 
-def export_phone_lab(directory: str | Path, calibration: CameraCalibration | None = None) -> Path:
+def export_phone_lab(directory: str | Path, calibration: CameraCalibration | None = None, *, configuration=None) -> Path:
     """Export an independent MJCF scene with a relative phone include.
 
     The exported scene can be opened by MuJoCo without this Python package.
@@ -97,8 +116,10 @@ def export_phone_lab(directory: str | Path, calibration: CameraCalibration | Non
     directory = Path(directory)
     if directory.exists() and any(directory.iterdir()):
         raise FileExistsError(f"Export directory must be new or empty: {directory}")
-    calibration = calibration or demo_calibration()
-    root = _scene_tree(calibration)
+    if configuration and calibration and calibration != configuration.calibration:
+        raise ValueError("Configuration and camera calibration must match")
+    calibration = configuration.calibration if configuration else calibration or demo_calibration()
+    root = _scene_tree(calibration, configuration)
     world = root.find("worldbody")
     phone = world.find("body[@name='iphone']")
     world.remove(phone)
@@ -111,7 +132,7 @@ def export_phone_lab(directory: str | Path, calibration: CameraCalibration | Non
     ET.ElementTree(root).write(directory / "scene.xml", encoding="unicode")
     ET.ElementTree(include).write(directory / "iphone.xml", encoding="unicode")
     calibration.save(directory / "calibration.json")
-    write_phone_module(directory / "iphone_fixed.xml", calibration)
+    write_phone_module(directory / "iphone_fixed.xml", calibration, configuration=configuration)
     info = {"format": "asmagic-mujoco-phone-lab", "camera_name": "iphone_camera",
             "phone_body": "iphone", "phone_control": "mocap; direct child of worldbody",
             "camera_pose_convention": "world_z_up_from_cv_optical",
@@ -122,18 +143,25 @@ def export_phone_lab(directory: str | Path, calibration: CameraCalibration | Non
             "sensor_model": "ideal pinhole RGB-D; physical sensor effects not modeled",
             "calibration_source": "synthetic_demo" if calibration == demo_calibration() else "caller_supplied",
             "default_world_from_camera": default_world_from_camera().tolist()}
+    if configuration:
+        configuration.save(directory / "device.json")
+        info.update(camera_configuration=configuration.to_dict(),
+                    phone_geometry="Apple dimensional drawing; interpolated corner outline",
+                    phone_mass_inertia="visual mode; payload disabled", lens_mount="mechanical lens-cover center",
+                    calibration_source=configuration.calibration_source)
     (directory / "scene_info.json").write_text(json.dumps(info, indent=2) + "\n")
     (directory / "README.md").write_text(
         "# Virtual iPhone camera laboratory\n\n"
         "Open scene.xml as a complete MuJoCo scene. No mesh downloads or absolute paths are needed.\n"
         "Example: python -m mujoco.viewer --mjcf scene.xml\n\n"
-        "iphone.xml is the movable world-level phone used by this scene.\n"
-        "For a fixed camera on your robot, include iphone_fixed.xml inside the robot body; "
+        "iphone.xml is the movable world-level phone used by this scene.\n" +
+        ("For a fixed camera on your robot, include iphone_fixed.assets.xml inside the scene asset element, "
+         if configuration else "") +
+        "include iphone_fixed.xml inside the robot body; "
         "load iphone_fixed.calibration.json for RGB/depth dimensions.\n"
         "The full interactive RGB/depth panels and P-to-save workflow are available through "
         "the iphone-mujoco package: mjpython -m iphone_mujoco phone-lab.\n\n"
         "Calibration source: " + info["calibration_source"] + ". "
-        "This is ideal pinhole RGB-D. Phone geometry/lens mount are approximate; "
-        "mass, inertia, LiDAR noise and physical sensor effects are not measured or simulated.\n",
+        "The camera renders registered pinhole RGB-D with optical-axis Z depth.\n",
         encoding="utf-8")
     return directory / "scene.xml"

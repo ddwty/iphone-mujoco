@@ -1,6 +1,7 @@
 """Wrist RGB-D contracts; image rendering is opt-in for OpenGL sessions."""
 import json
 import os
+import xml.etree.ElementTree as ET
 
 import mujoco
 import numpy as np
@@ -13,7 +14,8 @@ from iphone_mujoco.phone_scene import demo_calibration
 from iphone_mujoco.recording import ReplaySource
 from iphone_mujoco.robots import get_robot, load_scene
 from iphone_mujoco.wrist import (
-    WristCameraMount, WristRGBDRecorder, default_wrist_mount, wrist_camera_mjcf, _place_demo_targets,
+    WristCameraMount, WristRGBDRecorder, configured_wrist_mount, default_wrist_mount,
+    wrist_camera_mjcf, _place_demo_targets,
 )
 
 
@@ -81,6 +83,83 @@ def test_wrist_mount_rejects_nonrigid_transform():
         WristCameraMount("hand", np.full((4, 4), np.nan))
     with pytest.raises(ValueError):
         WristCameraMount("", np.eye(4))
+    with pytest.raises(ValueError):
+        WristCameraMount("hand", np.eye(4), parent_from_support=invalid)
+
+
+def test_support_mount_roundtrip_preserves_legacy_json(tmp_path):
+    legacy = WristCameraMount("hand", np.eye(4))
+    path = tmp_path / "mount.json"
+    legacy.save(path)
+    assert "parent_from_support" not in json.loads(path.read_text())
+    assert WristCameraMount.load(path).parent_from_support is None
+    mounted = default_wrist_mount("ur5e")
+    mounted.save(path)
+    loaded = WristCameraMount.load(path)
+    np.testing.assert_array_equal(loaded.parent_from_support, mounted.parent_from_support)
+    assert not loaded.parent_from_support.flags.writeable
+
+
+@pytest.mark.parametrize("robot_name", ["ur5e"], indirect=True)
+def test_ur_phone_is_in_tcp_plane_with_connected_massless_support(robot_name):
+    calibration = CameraCalibration(64, 48, 59., 57., 29.3, 21.8)
+    mount = default_wrist_mount(robot_name)
+    baseline, baseline_data, baseline_spec = load_scene(
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount),
+        phone_parent_body=mount.parent_body,
+    )
+    model, data, spec = load_scene(
+        robot_name, phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True),
+        phone_parent_body=mount.parent_body,
+    )
+    assert (model.nq, model.nv, model.nu) == (baseline.nq, baseline.nv, baseline.nu)
+    parent_id = model.body(mount.parent_body).id
+    camera_id = model.camera(mount.camera_name).id
+    tcp_id = model.site("attachment_site").id
+    support_prefix = mount.camera_name + "_support"
+    support_geoms = [index for index in range(model.ngeom)
+                     if model.geom(index).name.startswith(support_prefix)]
+    assert len(support_geoms) == 5
+    np.testing.assert_equal(model.geom_contype[support_geoms], 0)
+    np.testing.assert_equal(model.geom_conaffinity[support_geoms], 0)
+    for body_id in np.unique(model.geom_bodyid[support_geoms]):
+        assert model.body_mass[body_id] == 0
+    joint_positions = [model.joint(name).qposadr[0] for name in spec.joint_names]
+    baseline_positions = [baseline.joint(name).qposadr[0] for name in baseline_spec.joint_names]
+    home = data.qpos[joint_positions].copy()
+    for angles in (home, home + np.linspace(-.15, .15, len(home))):
+        data.qpos[joint_positions] = angles
+        baseline_data.qpos[baseline_positions] = angles
+        mujoco.mj_forward(model, data)
+        mujoco.mj_forward(baseline, baseline_data)
+        optical = _world_from_cv_camera(data, camera_id)
+        expected = _world_from_body(data, parent_id) @ mount.parent_from_camera
+        np.testing.assert_allclose(optical, expected, atol=1e-10)
+        outward = data.xmat[parent_id].reshape(3, 3)[:, 1]
+        np.testing.assert_allclose(np.dot(optical[:3, 3] - data.site_xpos[tcp_id], outward), 0., atol=1e-10)
+        np.testing.assert_allclose(optical[:3, 2], outward, atol=1e-10)
+        np.testing.assert_allclose(data.qM, baseline_data.qM, atol=1e-12)
+
+        brace = model.geom(support_prefix + "_brace").id
+        axis = data.geom_xmat[brace].reshape(3, 3)[:, 2]
+        endpoints = data.geom_xpos[brace] + np.outer([-1, 1], axis * model.geom_size[brace, 1])
+        collar = model.geom(support_prefix + "_collar").id
+        collar_points = (endpoints - data.geom_xpos[collar]) @ data.geom_xmat[collar].reshape(3, 3)
+        in_collar = ((np.linalg.norm(collar_points[:, :2], axis=1) <= model.geom_size[collar, 0] + 1e-10)
+                     & (np.abs(collar_points[:, 2]) <= model.geom_size[collar, 1] + 1e-10))
+        plate = model.geom(support_prefix + "_plate").id
+        plate_points = (endpoints - data.geom_xpos[plate]) @ data.geom_xmat[plate].reshape(3, 3)
+        in_plate = np.all(np.abs(plate_points) <= model.geom_size[plate] + 1e-10, axis=1)
+        assert np.any(in_collar) and np.any(in_plate)
+
+        shell = model.geom(mount.camera_name + "_phone_shell").id
+        shell_from_world = data.geom_xmat[shell].reshape(3, 3)
+        plate_in_shell = (data.geom_xpos[plate] - data.geom_xpos[shell]) @ shell_from_world
+        np.testing.assert_allclose(plate_in_shell[2] - model.geom_size[plate, 2], model.geom_size[shell, 2], atol=1e-10)
+        for side, sign in (("left", -1), ("right", 1)):
+            clamp = model.geom(support_prefix + "_clamp_" + side).id
+            clamp_in_shell = (data.geom_xpos[clamp] - data.geom_xpos[shell]) @ shell_from_world
+            np.testing.assert_allclose(sign * clamp_in_shell[0] - model.geom_size[clamp, 0], model.geom_size[shell, 0], atol=1e-10)
 
 
 def test_wrist_mount_rejects_missing_parent(robot_name):
@@ -151,6 +230,101 @@ def test_visible_phone_overrides_inherited_robot_geom_mass():
     mujoco.mj_forward(model, data)
     assert model.body(mount.camera_name + "_phone").mass[0] == 0
     np.testing.assert_allclose(data.qM, baseline_data.qM, atol=1e-12)
+
+
+def _configured_parent_scene(rig):
+    document = ET.fromstring(rig)
+    root = ET.fromstring('<mujoco><default><geom mass=".5"/></default><worldbody>'
+                         '<body name="parent"><joint name="joint"/>'
+                         '<geom type="box" size=".1 .1 .1"/></body></worldbody></mujoco>')
+    assets = document.find("asset")
+    if assets is not None:
+        root.append(assets)
+    root.find("worldbody/body").append(document.find("worldbody/body"))
+    model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
+    data = mujoco.MjData(model)
+    data.qpos[0] = .4
+    mujoco.mj_forward(model, data)
+    return model, data
+
+
+def test_configured_lens_changes_optical_center_without_moving_phone():
+    from iphone_mujoco.configuration import configure_camera
+    from iphone_mujoco.devices import get_device
+    mount = WristCameraMount("parent", pose_from_xyzw([.03, -.1, .08, .1, .2, -.3, .9]),
+                             parent_from_support=pose_from_xyzw([.01, -.1, .08, .1, .2, -.3, .9]))
+    expected_phone = mount.parent_from_camera @ np.linalg.inv(get_device("iphone-17-pro").phone_from_camera("wide"))
+    optical_poses = []
+    support_positions = None
+    for lens in ("wide", "ultra_wide", "telephoto"):
+        configuration = configure_camera("iphone-17-pro", lens=lens, resolution=(64, 48), depth_resolution=(32, 24))
+        model, data = _configured_parent_scene(wrist_camera_mjcf(
+            configuration.calibration, mount, show_phone=True, configuration=configuration))
+        parent = model.body(mount.parent_body).id
+        phone = model.body(mount.camera_name + "_phone").id
+        camera = model.camera(mount.camera_name).id
+        effective = configured_wrist_mount(mount, configuration)
+        np.testing.assert_allclose(_world_from_cv_camera(data, camera),
+                                   _world_from_body(data, parent) @ effective.parent_from_camera, atol=1e-10)
+        np.testing.assert_allclose(_world_from_body(data, phone),
+                                   _world_from_body(data, parent) @ expected_phone, atol=1e-10)
+        assert model.body_parentid[model.cam_bodyid[camera]] == parent
+        assert model.body_mass[phone] == 0
+        support_ids = [index for index in range(model.ngeom)
+                       if model.geom(index).name.startswith(mount.camera_name + "_support")]
+        if support_positions is None:
+            support_positions = data.geom_xpos[support_ids].copy()
+        else:
+            np.testing.assert_allclose(data.geom_xpos[support_ids], support_positions, atol=1e-10)
+        optical_poses.append(_world_from_cv_camera(data, camera))
+    assert not np.allclose(optical_poses[0][:3, 3], optical_poses[1][:3, 3])
+    assert not np.allclose(optical_poses[0][:3, 3], optical_poses[2][:3, 3])
+
+
+def test_configured_mount_uses_measured_selected_lens_transform():
+    from iphone_mujoco.configuration import configure_camera
+    from iphone_mujoco.devices import get_device
+    configuration = configure_camera("iphone-17-pro", lens="telephoto", resolution=(64, 48))
+    measured = pose_from_xyzw([.021, .049, -.006, 0., .01, 0., 1.])
+    configuration.metadata["phone_from_camera"] = measured.tolist()
+    mount = WristCameraMount("parent", np.eye(4))
+    device = get_device(configuration.device_id)
+    expected = np.linalg.inv(device.phone_from_camera("wide")) @ measured
+    np.testing.assert_allclose(configured_wrist_mount(mount, configuration).parent_from_camera, expected, atol=1e-10)
+    model, data = _configured_parent_scene(wrist_camera_mjcf(
+        configuration.calibration, mount, show_phone=True, configuration=configuration))
+    parent = model.body(mount.parent_body).id
+    np.testing.assert_allclose(_world_from_cv_camera(data, model.camera(mount.camera_name).id),
+                               _world_from_body(data, parent) @ expected, atol=1e-10)
+
+
+def test_configured_payload_mass_is_opt_in_and_independent_of_visibility():
+    from iphone_mujoco.configuration import configure_camera
+    from iphone_mujoco.devices import get_device
+    configuration = configure_camera("iphone-17-pro", region="cn", resolution=(64, 48))
+    mount = WristCameraMount("parent", np.eye(4))
+    baseline, baseline_data = _configured_parent_scene(wrist_camera_mjcf(
+        configuration.calibration, mount, configuration=configuration, show_phone=True))
+    assert baseline.body(mount.camera_name + "_phone").mass[0] == 0
+    loaded_inertia = None
+    for show_phone in (True, False):
+        model, data = _configured_parent_scene(wrist_camera_mjcf(
+            configuration.calibration, mount, configuration=configuration, show_phone=show_phone, payload=True))
+        phone = model.body(mount.camera_name + "_phone").id
+        np.testing.assert_allclose(model.body_mass[phone], get_device(configuration.device_id).mass_kg("cn"))
+        assert (model.nq, model.nv) == (baseline.nq, baseline.nv)
+        assert not np.allclose(data.qM, baseline_data.qM)
+        if loaded_inertia is None:
+            loaded_inertia = data.qM.copy()
+        else:
+            np.testing.assert_allclose(data.qM, loaded_inertia, atol=1e-12)
+        if not show_phone:
+            assert not np.any(model.geom_bodyid == phone)
+
+
+def test_payload_requires_device_configuration():
+    with pytest.raises(ValueError, match="payload requires"):
+        wrist_camera_mjcf(demo_calibration(), WristCameraMount("parent", np.eye(4)), payload=True)
 
 
 def test_mainstream_default_wrist_observes_demo_targets(robot_name):

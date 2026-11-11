@@ -227,11 +227,16 @@ def load_scene(robot: str | RobotSpec = "panda", phone_xml: str | None = None, *
                     raise ValueError(f"Missing camera parent body: {phone_parent_body}")
             parent.append(phone)
         elif phone.tag == "mujoco":
+            parent = world
             if phone_parent_body is not None:
-                raise ValueError("Mounted phone_xml must have a body root")
+                parent = next((body for body in world.iter("body") if body.get("name") == phone_parent_body), None)
+                if parent is None:
+                    raise ValueError(f"Missing camera parent body: {phone_parent_body}")
             for child in phone:
                 if child.tag == "worldbody":
-                    world.extend(child)
+                    if phone_parent_body is not None and any(item.tag != "body" for item in child):
+                        raise ValueError("Mounted phone module worldbody must contain only rigid bodies")
+                    parent.extend(child)
                 else:
                     existing = root.find(child.tag)
                     if existing is not None:

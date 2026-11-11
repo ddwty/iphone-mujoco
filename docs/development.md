@@ -9,7 +9,9 @@ legacy import aliases reference the same canonical classes.
 | Modules | Responsibility |
 |---|---|
 | `camera`, `geometry` | K, frame validation, projection, transforms and rendering |
-| `profiles` | Calibration/provenance and cosmetic phone MJCF |
+| `devices` | Sourced hardware catalog, regional mass and phone meshes |
+| `configuration` | Model/lens/zoom selection, projection source and bound calibration |
+| `profiles` | Calibration/provenance, MJCF assembly and portable module export |
 | `phone_scene`, `phone_lab` | Offline laboratory, interaction and snapshots |
 | `streams` | SDK adapters, local receipt state and independent freshness |
 | `virtual_device` | Existing SDK-schema output and depth quantization |
@@ -30,7 +32,8 @@ Both workflows use port 8000.
 
 | App workflow | TCP | Payload | Adapter |
 |---|---:|---|---|
-| Stream | 8000 | RGB/depth/confidence, K, frame-paired pose, source/session identity | `AsMagicSource(ip, mode="camera")` |
+| Stream, AR mode | 8000 | RGB/depth/confidence, K, frame-paired pose, source/session identity | `AsMagicSource(ip, mode="camera")` |
+| Stream, camera-only mode | 8105 | Selected-lens RGB, codec, frame ID and timestamps | SDK `CameraDataSubscriber`; no calibrated RGB-D adapter |
 | Robot control → Through Mac | 8000 | Pose/velocity and sender wall time | `AsMagicSource(ip, mode="teleop")` |
 | Robot control → Through Mac | 8020 | Buttons, sticks and triggers | Same teleop adapter |
 
@@ -83,9 +86,46 @@ remain `None`; invalid metric depth samples are NaN.
   `u' = (u + 0.5) * scale - 0.5`. Unknown crop/registration cannot be inferred.
 - Confidence is optional per-depth-pixel ARConfidenceLevel UInt8.
 
-`calibrate` writes the `CameraCalibration` JSON accepted by `--profile` for the
-current device and capture settings. `DeviceProfile.from_frame(frame)` provides
-a separate, richer record with provenance and physical-property fields.
+`calibrate` writes bare `CameraCalibration` JSON by default. With `--device`, it
+writes a `CameraConfiguration` bound to the user-identified phone's AR main
+camera at 1×. The stream does not transmit phone model, selected lens or zoom,
+so those identifiers cannot be inferred from image dimensions. Camera-only RGB
+does not transmit K, pose or depth.
+
+### Device configuration
+
+`assets/devices/iphone_catalog.json` stores six Pro/Pro Max models from iPhone
+15 through 17. Entries cite Apple's dimensional drawings and technical
+specifications for body dimensions, lens-cover coordinates, equivalent focal
+lengths, apertures and regional mass. Mesh outlines interpolate published
+corner ordinates. Edge bevels and the rear plateau contour remain geometric
+approximations. The optical origin uses the cover plane until replaced by a
+measured `configuration.metadata["phone_from_camera"]` transform.
+
+`configure_camera()` selects a catalog preset. Public optics use the 35 mm
+full-frame diagonal to derive an ideal, square-pixel pinhole projection from
+the equivalent focal length and requested raster diagonal. The saved source is
+`public_specs_ideal_pinhole`; it is distinct from `runtime_asmagic_frame` and
+`user_supplied_intrinsics`.
+
+`CameraConfiguration` JSON uses schema `iphone_mujoco.camera_configuration`,
+version 1. It retains device ID, physical lens, zoom, region, K, depth dimensions,
+source and metadata. A bound profile keeps its exact device/lens/zoom identity.
+Resizing requires the same aspect ratio and full-raster pixel-center scaling.
+Depth dimensions are supplied explicitly. Cropping, lens switching or changing
+zoom requires another calibration rather than scaling an existing measured K.
+The 2× and 8× presets retain their underlying physical lens center.
+
+`bind_runtime_calibration()` accepts the AR wide lens at 1× and preserves
+sender, source and receipt clock metadata. Bare K supplied to
+`configure_camera(..., profile=...)` is tagged as user-bound intrinsics.
+`DeviceProfile.from_frame(frame)` remains available for legacy provenance files.
+
+`configured_phone_mjcf()` returns a complete root containing assets and the
+phone body. `write_phone_module(..., configuration=config)` writes body and
+asset includes plus calibration/device sidecars. Geometry has disabled contacts
+and zero mass by default. `payload=True` adds the selected regional phone mass
+and a uniform-box inertia estimate; the case and support are separate payloads.
 
 The SDK owns HEVC decoder state and receives encoded packets without ZeroMQ
 conflation, then retains decoded output in a bounded queue. This package keeps
@@ -124,10 +164,13 @@ The camera follows robot forward kinematics. `move_body=True` is for a dedicated
 static/mocap phone body; do not teleport a jointed robot to reproduce phone
 motion. Attached cameras can simply render from their moving parent body.
 
-`wrist_camera_mjcf(..., show_phone=True)` adds the phone shell at the optical
-mount. Its cosmetic geoms use zero mass and disabled contacts, including when
-a parent MJCF provides default geom mass.
-Use an explicit saved mount JSON to reproduce a specific experiment rig.
+With a device configuration, a wrist mount is the wide-camera reference. The
+phone body follows that reference while the selected physical lens determines
+the final optical pose. A crop keeps the same physical lens origin. The UR5e
+default mount puts the lens-cover plane flush with the TCP plane and includes
+a flange collar, brace and phone clamp. Support geometry has zero mass and
+disabled contacts. Use an explicit saved mount JSON and measured optical
+extrinsics to reproduce a physical rig.
 
 ## Clocks, sessions and freshness
 
@@ -211,12 +254,36 @@ original licenses. Use `IPHONE_MUJOCO_MODEL_CACHE` for a shared
 local cache; legacy `ASMAGIC_MUJOCO_MODEL_CACHE` and previous caches remain
 compatible. Caches are excluded from source and release distributions.
 
-The phone shell and default mounts provide visual placement. For a physical rig,
-supply measured hand-eye/extrinsic calibration and load parameters for mass,
-inertia and lens mounting. Rendering uses an ideal pinhole model. Experiments
-with LiDAR confidence/noise, distortion, rolling shutter, exposure or sensor
-latency require corresponding sensor models.
+For a physical rig, supply measured hand-eye/optical calibration and account for
+case, mount, mass distribution and inertia. Rendering uses an ideal pinhole
+model and registered optical-Z depth. LiDAR noise/confidence, distortion,
+rolling shutter, exposure and sensor latency require corresponding sensor
+models; published camera presets do not establish those hardware properties.
 
 The controller uses damped Jacobian IK and position servos with joint,
 workspace and rate bounds. Hardware drivers, motion planning, collision
 avoidance and additional SDK signal adapters require separate integrations.
+
+## Focused verification
+
+Run the checks for the contract being changed, then build when packaging or
+bundled assets change:
+
+```bash
+python -m pytest tests/test_devices.py tests/test_configuration.py -q
+python -m pytest tests/test_wrist.py tests/test_phone_lab.py -q
+python -m build
+python tools/check_repo_hygiene.py --mode source
+```
+
+The device/configuration tests check catalog consistency, lens identity,
+equivalent-focal projection, pixel-center resizing and source/clock retention.
+Wrist tests check fixed phone placement across lens changes, mount geometry,
+payload opt-in and same-state camera/robot samples. OpenGL rendering tests opt
+in with `IPHONE_MUJOCO_TEST_RENDER=1`. Wheel construction and these software
+checks do not establish physical camera accuracy or phone/network behavior.
+
+Keep validation output, recordings and downloaded robot models in ignored local
+directories. Run the staged hygiene check before publishing. Record native
+viewer and real-device acceptance separately with device/settings, inputs and
+observed results; preserve the episode format and original clock domains.

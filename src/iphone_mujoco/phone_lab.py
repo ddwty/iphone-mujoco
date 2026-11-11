@@ -150,8 +150,11 @@ def run_phone_lab(args, *, initial_keys=()):
     """Interactive offline lab; no physical phone, robot download or network needed."""
     if not np.isfinite([args.duration, args.fps]).all() or args.duration < 0 or args.fps <= 0:
         raise ValueError("Duration must be finite and nonnegative; preview FPS must be finite and positive")
-    calibration = CameraCalibration.load(args.profile) if args.profile else demo_calibration()
-    model, data = load_phone_lab(calibration)
+    from .cli import _camera_configuration
+    configuration = _camera_configuration(args)
+    calibration = configuration.calibration if configuration else CameraCalibration.load(args.profile) if args.profile else demo_calibration()
+    model, data = load_phone_lab(calibration, configuration=configuration)
+    initial_pose = _optical_pose(model, data).copy()
     # The raw portable XML keeps group 2 for standard-viewer visibility. This
     # application explicitly shows group 5 only in its overview, hiding cosmetics
     # from the sensor without hiding any other model's visual meshes.
@@ -204,7 +207,7 @@ def run_phone_lab(args, *, initial_keys=()):
                             capture = True
                         elif key == ord("R"):
                             automatic = False
-                            sensor.set_world_pose(data, default_world_from_camera(), move_body=True)
+                            sensor.set_world_pose(data, initial_pose, move_body=True)
                         elif key == ord("B"):
                             automatic = not automatic
                         elif key == ord("F"):
@@ -221,7 +224,7 @@ def run_phone_lab(args, *, initial_keys=()):
                                 automatic = False
                                 sensor.set_world_pose(data, pose, move_body=True)
                     if automatic:
-                        pose = default_world_from_camera()
+                        pose = initial_pose.copy()
                         elapsed = time.monotonic() - started
                         pose[0, 3] += .12 * np.sin(elapsed * .6)
                         sensor.set_world_pose(data, pose, move_body=True)
@@ -231,8 +234,10 @@ def run_phone_lab(args, *, initial_keys=()):
                     frame = sensor.render(data)
                     frame.frame_id = rendered
                     frame.metadata.update({"session_id": session, "simulation_time": float(data.time),
-                                           "calibration_source": str(args.profile) if args.profile else "synthetic_demo",
-                                           "scene": "phone_lab", "phone_geometry": "approximate_visual_only"})
+                                           "calibration_source": configuration.calibration_source if configuration else str(args.profile) if args.profile else "synthetic_demo",
+                                           "scene": "phone_lab", "phone_geometry": "catalog" if configuration else "approximate_visual_only"})
+                    if configuration:
+                        frame.metadata["camera_configuration"] = configuration.to_dict()
                     if viewer and viewer.user_scn is not None:
                         if show_frustum:
                             _frustum(viewer.user_scn, frame)
@@ -250,6 +255,8 @@ def run_phone_lab(args, *, initial_keys=()):
                         index += 1
                         path = output / f"capture-{index:04d}"
                     _snapshot(frame, path, scene_image)
+                    if configuration:
+                        configuration.save(path / "device.json")
                     captures += 1
                     last_capture_path = f"Saved {path.name} (see terminal)"
                     print(f"Saved: {path}", flush=True)
@@ -266,5 +273,5 @@ def run_phone_lab(args, *, initial_keys=()):
                 time.sleep(max(0., 1 / args.fps - (time.monotonic()-iteration_started)))
         finally:
             print(json.dumps({"rendered_frames": rendered, "captures": captures,
-                              "profile": str(args.profile) if args.profile else "synthetic_demo",
+                              "profile": str(args.profile) if args.profile else configuration.calibration_source if configuration else "synthetic_demo",
                               "output": str(output.resolve())}, indent=2), flush=True)

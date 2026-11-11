@@ -2,8 +2,9 @@
 
 [![CI](https://github.com/ddwty/iphone-mujoco/actions/workflows/ci.yml/badge.svg)](https://github.com/ddwty/iphone-mujoco/actions/workflows/ci.yml)
 
-Use an iPhone camera module in MuJoCo scenes, on robot wrists and on mobile
-platforms. Record RGB-D, calibration and camera poses in replayable episodes.
+Mount an iPhone camera module in MuJoCo scenes, on robot wrists and on mobile
+platforms. Select a phone, rear lens and output size, then record RGB-D,
+calibration and camera poses in replayable episodes.
 Real iPhone streams connect through the PyPI `asmagic` SDK.
 [Python SDK](https://pypi.org/project/asmagic/)
 
@@ -29,9 +30,9 @@ On Windows, create the environment with `py -m venv .venv` and install with
 
 | Platform | Open the interactive laboratory |
 |---|---|
-| macOS | `mjpython -m iphone_mujoco phone-lab` |
-| Linux | `.venv/bin/python -m iphone_mujoco phone-lab` |
-| Windows | `.venv\Scripts\python.exe -m iphone_mujoco phone-lab` |
+| macOS | `mjpython -m iphone_mujoco phone-lab --device iphone-17-pro --region cn` |
+| Linux | `.venv/bin/python -m iphone_mujoco phone-lab --device iphone-17-pro --region cn` |
+| Windows | `.venv\Scripts\python.exe -m iphone_mujoco phone-lab --device iphone-17-pro --region cn` |
 
 Move the phone with arrow keys and Q/E, rotate with J/L and I/K, press B to
 scan, and press P to save RGB-D and point clouds. On macOS you can also open
@@ -39,6 +40,41 @@ scan, and press P to save RGB-D and point clouds. On macOS you can also open
 
 Rendering uses OpenGL. A headless Linux host needs a supported EGL driver or
 Xvfb/GLFW configuration. `--headless` still renders sensor images.
+
+## Choose the iPhone camera
+
+![iPhone rear camera fields of view](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/camera-lenses.gif)
+
+[PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/camera-lenses.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/camera-lenses.gif)
+
+| Model IDs | Rear camera presets |
+|---|---|
+| `iphone-15-pro` | 0.5×, 1×, 1.2×, 1.5×, 2×, 3× |
+| `iphone-15-pro-max` | 0.5×, 1×, 1.2×, 1.5×, 2×, 5× |
+| `iphone-16-pro`, `iphone-16-pro-max` | 0.5×, 1×, 1.2×, 1.5×, 2×, 5× |
+| `iphone-17-pro`, `iphone-17-pro-max` | 0.5×, 1×, 1.2×, 1.5×, 2×, 4×, 8× |
+
+```bash
+iphone-mujoco devices
+iphone-mujoco devices --device iphone-17-pro
+iphone-mujoco configure-camera --device iphone-17-pro --region cn \
+  --zoom 0.5 --resolution 1280x960 --depth-resolution 256x192 \
+  --output profiles/iphone-17-pro-ultrawide.json
+mjpython -m iphone_mujoco phone-lab \
+  --profile profiles/iphone-17-pro-ultrawide.json
+```
+
+Use `--lens ultra_wide`, `--lens wide` or `--lens telephoto` to select the
+physical lens directly. The 1.2×, 1.5× and 2× presets crop the main camera;
+8× on iPhone 17 Pro crops the telephoto camera. Switching lenses moves the optical origin while
+the mounted phone stays in place. RGB and depth output sizes are independent.
+
+The catalog uses Apple's dimensional drawings, technical specifications and
+regional masses. Public camera presets derive an ideal field of view from the
+published equivalent focal length. Use `calibrate --device` for your phone's
+actual AR RGB-D intrinsics. See [camera configuration and mounting](docs/phone-lab.md#camera-configuration)
+for the distinction and [catalog sources](src/iphone_mujoco/assets/devices/iphone_catalog.json)
+for individual references.
 
 ## Camera experiments
 
@@ -57,12 +93,13 @@ Xvfb/GLFW configuration. `--headless` still renders sensor images.
 
 ```bash
 python examples/scene_camera.py --scenario tabletop \
+  --device iphone-17-pro --region cn --zoom 0.5 \
   --duration 4 --fps 10 --headless --output recordings/tabletop
 iphone-mujoco inspect-episode recordings/tabletop/episode --json
 ```
 
-Pass `--profile profiles/my-iphone.json` to use your device's intrinsics.
-The examples use the included camera profile by default.
+The sequence examples accept the same camera options, including a saved
+configuration with `--profile profiles/my-iphone.json`.
 
 ### Mobile camera
 
@@ -72,6 +109,7 @@ The examples use the included camera profile by default.
 
 ```bash
 python examples/scene_camera.py --scenario mobile \
+  --device iphone-17-pro --region cn --zoom 1 \
   --duration 6 --fps 10 --output recordings/mobile
 ```
 
@@ -92,9 +130,8 @@ scene, and each frame records the base and camera poses.
 
 ```bash
 iphone-mujoco models --fetch panda
-iphone-mujoco export-lab --output recordings/demo-rig
 mjpython -m iphone_mujoco capture-wrist --robot panda \
-  --profile recordings/demo-rig/calibration.json --show-phone \
+  --device iphone-17-pro --region cn --zoom 1 --show-phone \
   --duration 5 --fps 10 --output recordings/wrist-panda
 ```
 
@@ -104,12 +141,15 @@ download.
 ```bash
 iphone-mujoco models --fetch ur5e
 mjpython -m iphone_mujoco capture-wrist --robot ur5e \
-  --profile recordings/demo-rig/calibration.json --show-phone \
+  --device iphone-17-pro-max --region cn --zoom 0.5 --show-phone \
   --duration 5 --fps 10 --output recordings/wrist-ur5e
 ```
 
-Use `--show-phone` to display the phone and `--mount measured-mount.json` to
-load your mounting transform. RGB, depth and robot state are captured together.
+Use `--show-phone` to display the phone and its wrist support. The UR5e mount
+places the rear lens-cover plane level with the TCP plane. Use
+`--mount measured-mount.json` for your mounting transform. RGB, depth and robot
+state are captured together. Add `--payload` to include the selected region's
+published phone mass and an estimated uniform-box inertia.
 Use `--motion hold` for a stationary joint target. The viewer displays RGB and
 depth alongside the robot.
 
@@ -134,8 +174,13 @@ its body name. The camera guide includes a complete example and mount format. [C
 Export an MJCF include for a `worldbody` or robot body.
 
 ```bash
-iphone-mujoco export-phone --output recordings/iphone.xml
+iphone-mujoco export-phone --device iphone-17-pro --region cn \
+  --zoom 1 --output recordings/iphone/iphone.xml
 ```
+
+The export provides body and asset includes, calibration and a saved device
+configuration. The [mounting guide](docs/phone-lab.md#export-the-camera-module)
+shows where each include belongs in an MJCF scene.
 
 ## Read recordings
 
@@ -171,16 +216,30 @@ dataset fields and depth PNG reading.
 
 ## iPhone connection
 
-In asMagic, open **Stream**, enable RGB/depth, choose **Y up** and disable
-custom coordinate adjustments. Then capture the device's camera intrinsics.
+In asMagic, open **Stream** in AR mode, enable RGB/depth, choose **Y up** and
+disable custom coordinate adjustments. Capture the device's camera intrinsics.
 
 ```bash
 python -m pip install -e '.[live]'
-iphone-mujoco calibrate --ip YOUR_IP --output profiles/my-iphone.json
+iphone-mujoco calibrate --ip YOUR_IP --device iphone-17-pro --region cn \
+  --output profiles/my-iphone.json
 ```
 
-The app's Z-up preset uses `--pose-convention robotics`.
-Reacquire calibration after changing capture settings.
+The saved configuration binds the received K to the AR main camera at 1×.
+It can be resized without cropping at the same aspect ratio. Changing its
+device, lens or zoom requires a separate calibration. The app's Z-up preset
+uses `--pose-convention robotics`. Reacquire K after changing capture settings.
+The app's camera-only mode supports other physical lenses, but its RGB stream
+currently carries neither K nor depth; it cannot supply a calibrated all-lens
+RGB-D profile.
+
+Use live phone poses and intrinsics to move the virtual camera and record paired
+real/simulated episodes:
+
+```bash
+mjpython -m iphone_mujoco camera --ip YOUR_IP --device iphone-17-pro \
+  --region cn --duration 10 --output recordings/paired-camera
+```
 
 For wrist-camera control, switch to **Robot control → Through Mac** and start
 sending. Release Square once after connecting, then hold it to move.

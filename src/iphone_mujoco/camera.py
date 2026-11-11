@@ -88,7 +88,12 @@ class CameraCalibration:
 
     @classmethod
     def load(cls, path: str | Path) -> "CameraCalibration":
-        return cls(**json.loads(Path(path).read_text(encoding="utf-8")))
+        values = json.loads(Path(path).read_text(encoding="utf-8"))
+        if values.get("schema") == "iphone_mujoco.camera_configuration" or values.get("schema_version") == 1 and "calibration" in values:
+            if values.get("schema_version") != 1:
+                raise ValueError("Unsupported camera profile schema")
+            values = values["calibration"]
+        return cls(**values)
 
 
 @dataclass

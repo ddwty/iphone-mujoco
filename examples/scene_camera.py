@@ -1,7 +1,7 @@
 """Collect iPhone-format RGB-D from a tabletop, mobile base or your own MJCF.
 
 macOS viewers use mjpython. Headless capture still requires OpenGL.
-The built-in scenes use scripted target/base motion and synthetic calibration.
+Built-in motion is scripted. Add --device or --profile to choose a camera.
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import json
 import math
 from pathlib import Path
 import time
+import xml.etree.ElementTree as ET
 
 import mujoco
 import numpy as np
@@ -18,19 +19,20 @@ from PIL import Image
 
 from iphone_mujoco import CameraCalibration, MujocoRGBDCamera
 from iphone_mujoco.phone_lab import update_rgbd_preview
-from iphone_mujoco.cli import look_at
+from iphone_mujoco.cli import _camera_configuration, _camera_options, look_at
 from iphone_mujoco.phone_scene import demo_calibration, load_phone_lab
 from iphone_mujoco.recording import RecordingWriter
 from iphone_mujoco.virtual_device import quantize_depth
-from iphone_mujoco.wrist import WristCameraMount, wrist_camera_mjcf
+from iphone_mujoco.wrist import WristCameraMount, configured_wrist_mount, wrist_camera_mjcf
 
 
-def _mobile_scene(calibration):
+def _mobile_scene(calibration, *, configuration=None):
     mount = WristCameraMount(
         "mobile_base", look_at(eye=(0., .20, .62), target=(0., 1.8, .32)),
         camera_name="iphone_camera", measured=False,
     )
-    phone = wrist_camera_mjcf(calibration, mount, show_phone=True)
+    phone = ET.fromstring(wrist_camera_mjcf(calibration, mount, show_phone=True,
+                                            configuration=configuration))
     xml = f"""<mujoco model="Scripted mobile RGB-D camera">
       <option timestep=".002"/>
       <visual><global offwidth="640" offheight="480"/>
@@ -64,15 +66,24 @@ def _mobile_scene(calibration):
             quat=".70710678 0 .70710678 0" rgba=".08 .09 .11 1"/>
           <geom type="cylinder" fromto="0 .16 .25 0 .16 .57"
             size=".018" rgba=".25 .28 .33 1"/>
-          {phone}
         </body>
       </worldbody>
     </mujoco>"""
-    model = mujoco.MjModel.from_xml_string(xml)
+    root = ET.fromstring(xml)
+    if phone.tag == "mujoco":
+        assets = phone.find("asset")
+        if assets is not None:
+            root.find("asset").extend(assets)
+        phone = phone.find("worldbody/body")
+    root.find("worldbody/body[@name='mobile_base']").append(phone)
+    visual = root.find("visual/global")
+    visual.set("offwidth", str(max(640, calibration.width)))
+    visual.set("offheight", str(max(480, calibration.height)))
+    model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
     return model, mujoco.MjData(model), mount.camera_name
 
 
-def build_scene(scenario, calibration, *, scene=None, parent_body=None, mount=None):
+def build_scene(scenario, calibration, *, scene=None, parent_body=None, mount=None, configuration=None):
     """Return model, state and camera name for a reproducible experiment.
 
     A custom scene uses MjSpec to retain original include/mesh resolution.
@@ -82,10 +93,10 @@ def build_scene(scenario, calibration, *, scene=None, parent_body=None, mount=No
     default state. The collector then advances the source dynamics and controls.
     """
     if scenario == "tabletop":
-        model, data = load_phone_lab(calibration)
+        model, data = load_phone_lab(calibration, configuration=configuration)
         return model, data, "iphone_camera"
     if scenario == "mobile":
-        model, data, camera_name = _mobile_scene(calibration)
+        model, data, camera_name = _mobile_scene(calibration, configuration=configuration)
         mujoco.mj_forward(model, data)
         return model, data, camera_name
     if scenario != "custom":
@@ -100,11 +111,15 @@ def build_scene(scenario, calibration, *, scene=None, parent_body=None, mount=No
         raise ValueError(f"Camera parent body is missing: {mount.parent_body}")
     if spec.camera(mount.camera_name) is not None:
         raise ValueError(f"Camera already exists; choose another mount.camera_name: {mount.camera_name}")
-    phone = wrist_camera_mjcf(calibration, mount, show_phone=True)
-    child = mujoco.MjSpec.from_string(f"<mujoco><worldbody>{phone}</worldbody></mujoco>")
+    phone = wrist_camera_mjcf(calibration, mount, show_phone=True, configuration=configuration)
+    document = ET.fromstring(phone)
+    child = mujoco.MjSpec.from_string(
+        phone if document.tag == "mujoco" else f"<mujoco><worldbody>{phone}</worldbody></mujoco>")
     frame = parent.add_frame()
     spec.attach(child, prefix="", frame=frame)
     model = spec.compile()
+    model.vis.global_.offwidth = max(model.vis.global_.offwidth, calibration.width)
+    model.vis.global_.offheight = max(model.vis.global_.offheight, calibration.height)
     data = mujoco.MjData(model)
     if model.nkey:
         mujoco.mj_resetDataKeyframe(model, data, 0)
@@ -144,10 +159,12 @@ def _world_from_body(model, data, name):
 
 
 def collect(args):
-    calibration = CameraCalibration.load(args.profile) if args.profile else demo_calibration()
+    configuration = _camera_configuration(args)
+    calibration = (configuration.calibration if configuration else
+                   CameraCalibration.load(args.profile) if args.profile else demo_calibration())
     mount = WristCameraMount.load(args.mount) if args.mount else None
     model, data, camera_name = build_scene(args.scenario, calibration, scene=args.scene,
-                                         parent_body=args.parent_body, mount=mount)
+                                         parent_body=args.parent_body, mount=mount, configuration=configuration)
     if args.fps > 1 / model.opt.timestep:
         raise ValueError("FPS must not exceed the simulation physics rate")
     output = Path(args.output)
@@ -158,7 +175,7 @@ def collect(args):
     (output / "depth").mkdir(exist_ok=True)
     calibration.save(output / "calibration.json")
     if mount is not None:
-        mount.save(output / "mount.json")
+        configured_wrist_mount(mount, configuration).save(output / "mount.json")
     metadata = {"scenario": args.scenario, "source": "mujoco-simulation",
                 "calibration_source": "caller_profile" if args.profile else "synthetic_example",
                 "camera_name": camera_name, "timestamp_clock": "simulation",
@@ -173,6 +190,12 @@ def collect(args):
                           "height": calibration.depth_calibration().height,
                           "K": calibration.depth_calibration().matrix.tolist(),
                           "definition": "optical_axis_z", "meters_per_unit": .0001}}
+    if configuration:
+        configuration.save(output / "device.json")
+        metadata.update(camera_configuration=configuration.to_dict(),
+                        calibration_source=configuration.calibration_source)
+    if mount is not None:
+        metadata["mount"] = configured_wrist_mount(mount, configuration).to_dict()
     (output / "camera_info.json").write_text(json.dumps(metadata, indent=2) + "\n")
     started = time.monotonic()
     frame_count = 0
@@ -227,7 +250,8 @@ def collect(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scenario", choices=("tabletop", "mobile", "custom"), default="tabletop")
-    parser.add_argument("--profile", help="Runtime camera calibration JSON; default is synthetic")
+    parser.add_argument("--profile", help="Captured calibration or saved device configuration JSON")
+    _camera_options(parser)
     parser.add_argument("--scene", help="Your MJCF XML, required for custom")
     parser.add_argument("--parent-body", help="Must match the body named in the mount JSON")
     parser.add_argument("--mount", help="WristCameraMount JSON with parent_from_camera in CV optical axes")

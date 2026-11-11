@@ -53,6 +53,32 @@ def test_doctor_reports_graphics_as_unprobed(monkeypatch, capsys):
     assert "iphone_mujoco" in result
 
 
+def test_device_selection_cli_and_bound_profile_identity(tmp_path, capsys):
+    from iphone_mujoco.configuration import CameraConfiguration
+    profile = tmp_path / "phone.json"
+    assert main(["configure-camera", "--device", "iphone-17-pro", "--region", "cn",
+                 "--zoom", "8", "--resolution", "1280x960", "--output", str(profile)]) == 0
+    config = CameraConfiguration.load(profile)
+    assert (config.lens, config.zoom, config.region) == ("telephoto", 8., "cn")
+    assert (config.calibration.width, config.calibration.height) == (1280, 960)
+    exported = tmp_path / "module.xml"
+    assert main(["export-phone", "--profile", str(profile), "--output", str(exported)]) == 0
+    assert exported.with_suffix(".assets.xml").exists()
+    assert main(["export-phone", "--profile", str(profile), "--zoom", "4",
+                 "--output", str(tmp_path / "wrong.xml")]) == 1
+    assert not (tmp_path / "wrong.xml").exists()
+    assert "identity" in capsys.readouterr().err
+
+
+def test_cli_rejects_unsupported_lens_and_output_size(tmp_path, capsys):
+    output = str(tmp_path / "invalid.json")
+    assert main(["configure-camera", "--device", "iphone-17-pro", "--lens", "wide",
+                 "--zoom", "8", "--output", output]) == 1
+    with pytest.raises(SystemExit):
+        main(["configure-camera", "--resolution", "0x480", "--output", output])
+    assert not Path(output).exists()
+
+
 def _episode(directory):
     calibration = CameraCalibration(8, 6, 7.5, 7.2, 3.3, 2.7, 4, 3)
     depth = np.full((3, 4), 1.25, dtype=np.float32)

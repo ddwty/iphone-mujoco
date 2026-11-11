@@ -1,0 +1,1009 @@
+{
+  "schema_version": 1,
+  "devices": [
+    {
+      "id": "iphone-15-pro",
+      "drawing_url": "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-15-pro.pdf",
+      "drawing_revision": "2023-10-10",
+      "drawing_sheet": 1,
+      "body_whd_mm": [
+        70.6,
+        146.61,
+        8.25
+      ],
+      "corner_profile_xy_mm": [
+        [
+          0,
+          17.24
+        ],
+        [
+          0.05,
+          12.36
+        ],
+        [
+          0.9,
+          7.58
+        ],
+        [
+          3.48,
+          3.48
+        ],
+        [
+          7.58,
+          0.9
+        ],
+        [
+          12.36,
+          0.05
+        ],
+        [
+          17.24,
+          0
+        ]
+      ],
+      "corner_profile_note": "Mirror at all four corners. Interpolation between supplied ordinates is a model approximation.",
+      "rear_lens_outer_diameter_mm": 16.2,
+      "rear_lens_xy_mm": {
+        "ultra_wide": [
+          14.17,
+          14.17
+        ],
+        "wide": [
+          14.17,
+          33.41
+        ],
+        "telephoto": [
+          32.16,
+          23.79
+        ]
+      },
+      "camera_plateau_rise_mm": 2.05,
+      "lens_cover_surface_rise_mm": 3.78,
+      "name": "iPhone 15 Pro",
+      "screen_wh_mm": [
+        65.08,
+        141.09
+      ],
+      "mass_variants": {
+        "us": {
+          "grams": 187,
+          "source_url": "https://support.apple.com/en-us/111829"
+        },
+        "cn": {
+          "grams": 187,
+          "source_url": "https://support.apple.com/zh-cn/111829"
+        }
+      },
+      "optics_source_url": "https://support.apple.com/en-us/111829",
+      "zoom_modes": [
+        {
+          "display_zoom": 0.5,
+          "lens": "ultra_wide",
+          "equivalent_focal_mm": 13,
+          "crop": false,
+          "aperture": 2.2
+        },
+        {
+          "display_zoom": 1,
+          "lens": "wide",
+          "equivalent_focal_mm": 24,
+          "crop": false,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 1.2,
+          "lens": "wide",
+          "equivalent_focal_mm": 28,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 1.5,
+          "lens": "wide",
+          "equivalent_focal_mm": 35,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 2,
+          "lens": "wide",
+          "equivalent_focal_mm": 48,
+          "crop": true,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 3,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 77,
+          "crop": false,
+          "aperture": 2.8
+        }
+      ],
+      "ultra_wide_nominal_fov_degrees": 120,
+      "ultra_wide_nominal_fov_axis": "unspecified_by_source",
+      "geometry_status": {
+        "body_outline": "sourced_corner_ordinates_piecewise_linear",
+        "edge_profile": "straight_extrusion_approximation",
+        "screen_outline": "scaled_body_outline_approximation",
+        "camera_plateau_outline": "rounded_contour_approximation",
+        "lens_center_xy": "sourced_mechanical_cover_centers",
+        "camera_z": "lens_cover_surface_approximation",
+        "optical_extrinsics": "not_measured",
+        "inertia": "uniform_box_estimate",
+        "center_of_mass": "body_center_estimate"
+      },
+      "camera_identity_evidence": "Inferred from camera 1/2/3 keepout angular ordering in Apple drawing; ultra wide/main/telephoto.",
+      "plateau_rear_bounds_mm": [
+        1.04,
+        1.04,
+        45.22,
+        46.54
+      ],
+      "plateau_bounds_status": "drawing_sheet_1_extent",
+      "plateau_bottom_corner_radius_mm": 12,
+      "nominal_optics_note": "Focal lengths are 35 mm equivalents; displayed zoom labels are rounded camera controls, not exact focal ratios. Per-format K and distortion require calibration.",
+      "coordinate_conventions": {
+        "drawing": "Rear portrait view; origin at body upper left, x right, y down; millimeters.",
+        "body": "Origin at body bounding-box center; x screen-right, y top, z out of screen.",
+        "camera": "CV x right, y down, z forward. Rear camera z lies on lens-cover surface as a geometric approximation."
+      },
+      "checked_date": "2026-11-11",
+      "mass_note": "Bare phone nominal mass. Mount and case mass must be supplied separately.",
+      "rear_flash_xy_mm": [
+        32.16,
+        10.22
+      ],
+      "rear_flash_outer_diameter_mm": 6.92,
+      "zoom_presets_source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+      "sources": [
+        "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-15-pro.pdf",
+        "https://support.apple.com/en-us/111829",
+        "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+        "https://support.apple.com/zh-cn/111829"
+      ]
+    },
+    {
+      "id": "iphone-15-pro-max",
+      "drawing_url": "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-15-pro-max.pdf",
+      "drawing_revision": "2023-10-10",
+      "drawing_sheet": 1,
+      "body_whd_mm": [
+        76.73,
+        159.86,
+        8.25
+      ],
+      "corner_profile_xy_mm": [
+        [
+          0,
+          17.24
+        ],
+        [
+          0.05,
+          12.36
+        ],
+        [
+          0.9,
+          7.58
+        ],
+        [
+          3.48,
+          3.48
+        ],
+        [
+          7.58,
+          0.9
+        ],
+        [
+          12.36,
+          0.05
+        ],
+        [
+          17.24,
+          0
+        ]
+      ],
+      "corner_profile_note": "Mirror at all four corners. Interpolation between supplied ordinates is a model approximation.",
+      "rear_lens_outer_diameter_mm": 16.2,
+      "rear_lens_xy_mm": {
+        "ultra_wide": [
+          14.17,
+          14.17
+        ],
+        "wide": [
+          14.17,
+          33.41
+        ],
+        "telephoto": [
+          32.16,
+          23.79
+        ]
+      },
+      "camera_plateau_rise_mm": 2.05,
+      "lens_cover_surface_rise_mm": 4.07,
+      "name": "iPhone 15 Pro Max",
+      "screen_wh_mm": [
+        71.21,
+        154.34
+      ],
+      "mass_variants": {
+        "us": {
+          "grams": 221,
+          "source_url": "https://support.apple.com/en-us/111828"
+        },
+        "cn": {
+          "grams": 221,
+          "source_url": "https://support.apple.com/zh-cn/111828"
+        }
+      },
+      "optics_source_url": "https://support.apple.com/en-us/111828",
+      "zoom_modes": [
+        {
+          "display_zoom": 0.5,
+          "lens": "ultra_wide",
+          "equivalent_focal_mm": 13,
+          "crop": false,
+          "aperture": 2.2
+        },
+        {
+          "display_zoom": 1,
+          "lens": "wide",
+          "equivalent_focal_mm": 24,
+          "crop": false,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 1.2,
+          "lens": "wide",
+          "equivalent_focal_mm": 28,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 1.5,
+          "lens": "wide",
+          "equivalent_focal_mm": 35,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 2,
+          "lens": "wide",
+          "equivalent_focal_mm": 48,
+          "crop": true,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 5,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 120,
+          "crop": false,
+          "aperture": 2.8
+        }
+      ],
+      "ultra_wide_nominal_fov_degrees": 120,
+      "ultra_wide_nominal_fov_axis": "unspecified_by_source",
+      "geometry_status": {
+        "body_outline": "sourced_corner_ordinates_piecewise_linear",
+        "edge_profile": "straight_extrusion_approximation",
+        "screen_outline": "scaled_body_outline_approximation",
+        "camera_plateau_outline": "rounded_contour_approximation",
+        "lens_center_xy": "sourced_mechanical_cover_centers",
+        "camera_z": "lens_cover_surface_approximation",
+        "optical_extrinsics": "not_measured",
+        "inertia": "uniform_box_estimate",
+        "center_of_mass": "body_center_estimate"
+      },
+      "camera_identity_evidence": "Inferred from camera 1/2/3 keepout angular ordering in Apple drawing; ultra wide/main/telephoto.",
+      "plateau_rear_bounds_mm": [
+        1.04,
+        1.04,
+        45.22,
+        46.54
+      ],
+      "plateau_bounds_status": "drawing_sheet_1_extent",
+      "plateau_bottom_corner_radius_mm": 12,
+      "nominal_optics_note": "Focal lengths are 35 mm equivalents; displayed zoom labels are rounded camera controls, not exact focal ratios. Per-format K and distortion require calibration.",
+      "coordinate_conventions": {
+        "drawing": "Rear portrait view; origin at body upper left, x right, y down; millimeters.",
+        "body": "Origin at body bounding-box center; x screen-right, y top, z out of screen.",
+        "camera": "CV x right, y down, z forward. Rear camera z lies on lens-cover surface as a geometric approximation."
+      },
+      "checked_date": "2026-11-11",
+      "mass_note": "Bare phone nominal mass. Mount and case mass must be supplied separately.",
+      "rear_flash_xy_mm": [
+        32.16,
+        10.22
+      ],
+      "rear_flash_outer_diameter_mm": 6.9,
+      "zoom_presets_source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+      "sources": [
+        "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-15-pro-max.pdf",
+        "https://support.apple.com/en-us/111828",
+        "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+        "https://support.apple.com/zh-cn/111828"
+      ]
+    },
+    {
+      "id": "iphone-16-pro",
+      "drawing_url": "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-16-pro.pdf",
+      "drawing_revision": "2024-09-19",
+      "drawing_sheet": 1,
+      "body_whd_mm": [
+        71.45,
+        149.61,
+        8.25
+      ],
+      "corner_profile_xy_mm": [
+        [
+          0,
+          19.23
+        ],
+        [
+          0.04,
+          13.75
+        ],
+        [
+          0.89,
+          8.36
+        ],
+        [
+          3.74,
+          3.74
+        ],
+        [
+          8.36,
+          0.89
+        ],
+        [
+          13.75,
+          0.04
+        ],
+        [
+          19.23,
+          0
+        ]
+      ],
+      "corner_profile_note": "Mirror at all four corners. Interpolation between supplied ordinates is a model approximation.",
+      "rear_lens_outer_diameter_mm": 16.2,
+      "rear_lens_xy_mm": {
+        "ultra_wide": [
+          14.17,
+          14.17
+        ],
+        "wide": [
+          14.17,
+          33.41
+        ],
+        "telephoto": [
+          32.16,
+          23.79
+        ]
+      },
+      "camera_plateau_rise_mm": 2.05,
+      "lens_cover_surface_rise_mm": 4.28,
+      "name": "iPhone 16 Pro",
+      "screen_wh_mm": [
+        66.57,
+        144.79
+      ],
+      "mass_variants": {
+        "us": {
+          "grams": 199,
+          "source_url": "https://support.apple.com/en-us/121031"
+        },
+        "cn": {
+          "grams": 199,
+          "source_url": "https://support.apple.com/zh-cn/121031"
+        }
+      },
+      "optics_source_url": "https://support.apple.com/en-us/121031",
+      "zoom_modes": [
+        {
+          "display_zoom": 0.5,
+          "lens": "ultra_wide",
+          "equivalent_focal_mm": 13,
+          "crop": false,
+          "aperture": 2.2
+        },
+        {
+          "display_zoom": 1,
+          "lens": "wide",
+          "equivalent_focal_mm": 24,
+          "crop": false,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 1.2,
+          "lens": "wide",
+          "equivalent_focal_mm": 28,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 1.5,
+          "lens": "wide",
+          "equivalent_focal_mm": 35,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 2,
+          "lens": "wide",
+          "equivalent_focal_mm": 48,
+          "crop": true,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 5,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 120,
+          "crop": false,
+          "aperture": 2.8
+        }
+      ],
+      "ultra_wide_nominal_fov_degrees": 120,
+      "ultra_wide_nominal_fov_axis": "unspecified_by_source",
+      "geometry_status": {
+        "body_outline": "sourced_corner_ordinates_piecewise_linear",
+        "edge_profile": "straight_extrusion_approximation",
+        "screen_outline": "scaled_body_outline_approximation",
+        "camera_plateau_outline": "rounded_contour_approximation",
+        "lens_center_xy": "sourced_mechanical_cover_centers",
+        "camera_z": "lens_cover_surface_approximation",
+        "optical_extrinsics": "not_measured",
+        "inertia": "uniform_box_estimate",
+        "center_of_mass": "body_center_estimate"
+      },
+      "camera_identity_evidence": "Inferred from camera 1/2/3 keepout angular ordering in Apple drawing; ultra wide/main/telephoto.",
+      "plateau_rear_bounds_mm": [
+        1.04,
+        1.04,
+        45.22,
+        46.54
+      ],
+      "plateau_bounds_status": "drawing_sheet_1_extent",
+      "plateau_bottom_corner_radius_mm": 12,
+      "nominal_optics_note": "Focal lengths are 35 mm equivalents; displayed zoom labels are rounded camera controls, not exact focal ratios. Per-format K and distortion require calibration.",
+      "coordinate_conventions": {
+        "drawing": "Rear portrait view; origin at body upper left, x right, y down; millimeters.",
+        "body": "Origin at body bounding-box center; x screen-right, y top, z out of screen.",
+        "camera": "CV x right, y down, z forward. Rear camera z lies on lens-cover surface as a geometric approximation."
+      },
+      "checked_date": "2026-11-11",
+      "mass_note": "Bare phone nominal mass. Mount and case mass must be supplied separately.",
+      "rear_flash_xy_mm": [
+        32.16,
+        10.22
+      ],
+      "rear_flash_outer_diameter_mm": 6.92,
+      "zoom_presets_source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+      "sources": [
+        "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-16-pro.pdf",
+        "https://support.apple.com/en-us/121031",
+        "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+        "https://support.apple.com/zh-cn/121031"
+      ]
+    },
+    {
+      "id": "iphone-16-pro-max",
+      "drawing_url": "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-16-pro-max.pdf",
+      "drawing_revision": "2024-09-19",
+      "drawing_sheet": 1,
+      "body_whd_mm": [
+        77.58,
+        163.03,
+        8.25
+      ],
+      "corner_profile_xy_mm": [
+        [
+          0,
+          19.23
+        ],
+        [
+          0.04,
+          13.75
+        ],
+        [
+          0.89,
+          8.36
+        ],
+        [
+          3.74,
+          3.74
+        ],
+        [
+          8.36,
+          0.89
+        ],
+        [
+          13.75,
+          0.04
+        ],
+        [
+          19.23,
+          0
+        ]
+      ],
+      "corner_profile_note": "Mirror at all four corners. Interpolation between supplied ordinates is a model approximation.",
+      "rear_lens_outer_diameter_mm": 16.2,
+      "rear_lens_xy_mm": {
+        "ultra_wide": [
+          14.17,
+          14.17
+        ],
+        "wide": [
+          14.17,
+          33.41
+        ],
+        "telephoto": [
+          32.16,
+          23.79
+        ]
+      },
+      "camera_plateau_rise_mm": 2.05,
+      "lens_cover_surface_rise_mm": 4.28,
+      "name": "iPhone 16 Pro Max",
+      "screen_wh_mm": [
+        72.86,
+        158.31
+      ],
+      "mass_variants": {
+        "us": {
+          "grams": 227,
+          "source_url": "https://support.apple.com/en-us/121032"
+        },
+        "cn": {
+          "grams": 227,
+          "source_url": "https://support.apple.com/zh-cn/121032"
+        }
+      },
+      "optics_source_url": "https://support.apple.com/en-us/121032",
+      "zoom_modes": [
+        {
+          "display_zoom": 0.5,
+          "lens": "ultra_wide",
+          "equivalent_focal_mm": 13,
+          "crop": false,
+          "aperture": 2.2
+        },
+        {
+          "display_zoom": 1,
+          "lens": "wide",
+          "equivalent_focal_mm": 24,
+          "crop": false,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 1.2,
+          "lens": "wide",
+          "equivalent_focal_mm": 28,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 1.5,
+          "lens": "wide",
+          "equivalent_focal_mm": 35,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 2,
+          "lens": "wide",
+          "equivalent_focal_mm": 48,
+          "crop": true,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 5,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 120,
+          "crop": false,
+          "aperture": 2.8
+        }
+      ],
+      "ultra_wide_nominal_fov_degrees": 120,
+      "ultra_wide_nominal_fov_axis": "unspecified_by_source",
+      "geometry_status": {
+        "body_outline": "sourced_corner_ordinates_piecewise_linear",
+        "edge_profile": "straight_extrusion_approximation",
+        "screen_outline": "scaled_body_outline_approximation",
+        "camera_plateau_outline": "rounded_contour_approximation",
+        "lens_center_xy": "sourced_mechanical_cover_centers",
+        "camera_z": "lens_cover_surface_approximation",
+        "optical_extrinsics": "not_measured",
+        "inertia": "uniform_box_estimate",
+        "center_of_mass": "body_center_estimate"
+      },
+      "camera_identity_evidence": "Inferred from camera 1/2/3 keepout angular ordering in Apple drawing; ultra wide/main/telephoto.",
+      "plateau_rear_bounds_mm": [
+        1.04,
+        1.04,
+        45.22,
+        46.54
+      ],
+      "plateau_bounds_status": "drawing_sheet_1_extent",
+      "plateau_bottom_corner_radius_mm": 12,
+      "nominal_optics_note": "Focal lengths are 35 mm equivalents; displayed zoom labels are rounded camera controls, not exact focal ratios. Per-format K and distortion require calibration.",
+      "coordinate_conventions": {
+        "drawing": "Rear portrait view; origin at body upper left, x right, y down; millimeters.",
+        "body": "Origin at body bounding-box center; x screen-right, y top, z out of screen.",
+        "camera": "CV x right, y down, z forward. Rear camera z lies on lens-cover surface as a geometric approximation."
+      },
+      "checked_date": "2026-11-11",
+      "mass_note": "Bare phone nominal mass. Mount and case mass must be supplied separately.",
+      "rear_flash_xy_mm": [
+        32.16,
+        10.22
+      ],
+      "rear_flash_outer_diameter_mm": 6.92,
+      "zoom_presets_source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+      "sources": [
+        "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-16-pro-max.pdf",
+        "https://support.apple.com/en-us/121032",
+        "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+        "https://support.apple.com/zh-cn/121032"
+      ]
+    },
+    {
+      "id": "iphone-17-pro",
+      "drawing_url": "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-17-pro.pdf",
+      "drawing_revision": "2025-09-09",
+      "drawing_sheet": 1,
+      "body_whd_mm": [
+        71.85,
+        150.01,
+        8.75
+      ],
+      "corner_profile_xy_mm": [
+        [
+          0,
+          19.43
+        ],
+        [
+          0.04,
+          13.9
+        ],
+        [
+          0.92,
+          8.46
+        ],
+        [
+          3.8,
+          3.8
+        ],
+        [
+          8.46,
+          0.92
+        ],
+        [
+          13.9,
+          0.04
+        ],
+        [
+          19.43,
+          0
+        ]
+      ],
+      "corner_profile_note": "Mirror at all four corners. Interpolation between supplied ordinates is a model approximation.",
+      "rear_lens_outer_diameter_mm": 16.2,
+      "rear_lens_xy_mm": {
+        "ultra_wide": [
+          14.37,
+          14.37
+        ],
+        "wide": [
+          14.37,
+          33.61
+        ],
+        "telephoto": [
+          32.36,
+          23.99
+        ]
+      },
+      "camera_plateau_rise_mm": 2.55,
+      "lens_cover_surface_rise_mm": 4.43,
+      "rear_lidar_xy_mm": [
+        58.03,
+        34.16
+      ],
+      "rear_lidar_outer_diameter_mm": 6.65,
+      "rear_flash_xy_mm": [
+        58.03,
+        13.82
+      ],
+      "rear_flash_outer_diameter_mm": 6.8,
+      "lens_cover_rise_note": "2.55 mm backplate to plateau plus 1.88 mm plateau to rear lens cover. Pro Max caption explicitly names both surfaces; Pro sheet 1 appears to mislabel second caption.",
+      "name": "iPhone 17 Pro",
+      "screen_wh_mm": [
+        66.57,
+        144.73
+      ],
+      "mass_variants": {
+        "us": {
+          "grams": 206,
+          "source_url": "https://support.apple.com/en-us/125090"
+        },
+        "cn": {
+          "grams": 204,
+          "source_url": "https://support.apple.com/zh-cn/125090"
+        }
+      },
+      "optics_source_url": "https://support.apple.com/en-us/125090",
+      "zoom_modes": [
+        {
+          "display_zoom": 0.5,
+          "lens": "ultra_wide",
+          "equivalent_focal_mm": 13,
+          "crop": false,
+          "aperture": 2.2
+        },
+        {
+          "display_zoom": 1,
+          "lens": "wide",
+          "equivalent_focal_mm": 24,
+          "crop": false,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 1.2,
+          "lens": "wide",
+          "equivalent_focal_mm": 28,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 1.5,
+          "lens": "wide",
+          "equivalent_focal_mm": 35,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 2,
+          "lens": "wide",
+          "equivalent_focal_mm": 48,
+          "crop": true,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 4,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 100,
+          "crop": false,
+          "aperture": 2.8
+        },
+        {
+          "display_zoom": 8,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 200,
+          "crop": true,
+          "aperture": 2.8
+        }
+      ],
+      "ultra_wide_nominal_fov_degrees": 120,
+      "ultra_wide_nominal_fov_axis": "unspecified_by_source",
+      "geometry_status": {
+        "body_outline": "sourced_corner_ordinates_piecewise_linear",
+        "edge_profile": "straight_extrusion_approximation",
+        "screen_outline": "scaled_body_outline_approximation",
+        "camera_plateau_outline": "rounded_contour_approximation",
+        "lens_center_xy": "sourced_mechanical_cover_centers",
+        "camera_z": "lens_cover_surface_approximation",
+        "optical_extrinsics": "not_measured",
+        "inertia": "uniform_box_estimate",
+        "center_of_mass": "body_center_estimate"
+      },
+      "camera_identity_evidence": "Inferred from camera 1/2/3 keepout angular ordering in Apple drawing; ultra wide/main/telephoto.",
+      "plateau_rear_bounds_mm": [
+        0,
+        0,
+        71.85,
+        47.98
+      ],
+      "plateau_bounds_status": "illustrative_extent",
+      "plateau_bottom_corner_radius_mm": 12,
+      "nominal_optics_note": "Focal lengths are 35 mm equivalents; displayed zoom labels are rounded camera controls, not exact focal ratios. Per-format K and distortion require calibration.",
+      "coordinate_conventions": {
+        "drawing": "Rear portrait view; origin at body upper left, x right, y down; millimeters.",
+        "body": "Origin at body bounding-box center; x screen-right, y top, z out of screen.",
+        "camera": "CV x right, y down, z forward. Rear camera z lies on lens-cover surface as a geometric approximation."
+      },
+      "checked_date": "2026-11-11",
+      "mass_note": "Bare phone nominal mass. Mount and case mass must be supplied separately.",
+      "zoom_presets_source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+      "sources": [
+        "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-17-pro.pdf",
+        "https://support.apple.com/en-us/125090",
+        "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+        "https://support.apple.com/zh-cn/125090"
+      ]
+    },
+    {
+      "id": "iphone-17-pro-max",
+      "drawing_url": "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-17-pro-max.pdf",
+      "drawing_revision": "2025-09-09",
+      "drawing_sheet": 1,
+      "body_whd_mm": [
+        77.98,
+        163.43,
+        8.75
+      ],
+      "corner_profile_xy_mm": [
+        [
+          0,
+          19.43
+        ],
+        [
+          0.04,
+          13.9
+        ],
+        [
+          0.92,
+          8.46
+        ],
+        [
+          3.8,
+          3.8
+        ],
+        [
+          8.46,
+          0.92
+        ],
+        [
+          13.9,
+          0.04
+        ],
+        [
+          19.43,
+          0
+        ]
+      ],
+      "corner_profile_note": "Mirror at all four corners. Interpolation between supplied ordinates is a model approximation.",
+      "rear_lens_outer_diameter_mm": 16.2,
+      "rear_lens_xy_mm": {
+        "ultra_wide": [
+          14.37,
+          14.37
+        ],
+        "wide": [
+          14.37,
+          33.61
+        ],
+        "telephoto": [
+          32.36,
+          23.99
+        ]
+      },
+      "camera_plateau_rise_mm": 2.55,
+      "lens_cover_surface_rise_mm": 4.43,
+      "rear_lidar_xy_mm": [
+        64.16,
+        34.16
+      ],
+      "rear_lidar_outer_diameter_mm": 6.65,
+      "rear_flash_xy_mm": [
+        64.16,
+        13.82
+      ],
+      "rear_flash_outer_diameter_mm": 6.8,
+      "lens_cover_rise_note": "2.55 mm backplate to plateau plus 1.88 mm plateau to rear lens cover. Pro Max caption explicitly names both surfaces; Pro sheet 1 appears to mislabel second caption.",
+      "name": "iPhone 17 Pro Max",
+      "screen_wh_mm": [
+        72.86,
+        158.31
+      ],
+      "mass_variants": {
+        "us": {
+          "grams": 233,
+          "source_url": "https://support.apple.com/en-us/125091"
+        },
+        "cn": {
+          "grams": 231,
+          "source_url": "https://support.apple.com/zh-cn/125091"
+        }
+      },
+      "optics_source_url": "https://support.apple.com/en-us/125091",
+      "zoom_modes": [
+        {
+          "display_zoom": 0.5,
+          "lens": "ultra_wide",
+          "equivalent_focal_mm": 13,
+          "crop": false,
+          "aperture": 2.2
+        },
+        {
+          "display_zoom": 1,
+          "lens": "wide",
+          "equivalent_focal_mm": 24,
+          "crop": false,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 1.2,
+          "lens": "wide",
+          "equivalent_focal_mm": 28,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 1.5,
+          "lens": "wide",
+          "equivalent_focal_mm": 35,
+          "crop": true,
+          "aperture": 1.78,
+          "source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios"
+        },
+        {
+          "display_zoom": 2,
+          "lens": "wide",
+          "equivalent_focal_mm": 48,
+          "crop": true,
+          "aperture": 1.78
+        },
+        {
+          "display_zoom": 4,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 100,
+          "crop": false,
+          "aperture": 2.8
+        },
+        {
+          "display_zoom": 8,
+          "lens": "telephoto",
+          "equivalent_focal_mm": 200,
+          "crop": true,
+          "aperture": 2.8
+        }
+      ],
+      "ultra_wide_nominal_fov_degrees": 120,
+      "ultra_wide_nominal_fov_axis": "unspecified_by_source",
+      "geometry_status": {
+        "body_outline": "sourced_corner_ordinates_piecewise_linear",
+        "edge_profile": "straight_extrusion_approximation",
+        "screen_outline": "scaled_body_outline_approximation",
+        "camera_plateau_outline": "rounded_contour_approximation",
+        "lens_center_xy": "sourced_mechanical_cover_centers",
+        "camera_z": "lens_cover_surface_approximation",
+        "optical_extrinsics": "not_measured",
+        "inertia": "uniform_box_estimate",
+        "center_of_mass": "body_center_estimate"
+      },
+      "camera_identity_evidence": "Inferred from camera 1/2/3 keepout angular ordering in Apple drawing; ultra wide/main/telephoto.",
+      "plateau_rear_bounds_mm": [
+        0,
+        0,
+        77.98,
+        47.98
+      ],
+      "plateau_bounds_status": "illustrative_extent",
+      "plateau_bottom_corner_radius_mm": 12,
+      "nominal_optics_note": "Focal lengths are 35 mm equivalents; displayed zoom labels are rounded camera controls, not exact focal ratios. Per-format K and distortion require calibration.",
+      "coordinate_conventions": {
+        "drawing": "Rear portrait view; origin at body upper left, x right, y down; millimeters.",
+        "body": "Origin at body bounding-box center; x screen-right, y top, z out of screen.",
+        "camera": "CV x right, y down, z forward. Rear camera z lies on lens-cover surface as a geometric approximation."
+      },
+      "checked_date": "2026-11-11",
+      "mass_note": "Bare phone nominal mass. Mount and case mass must be supplied separately.",
+      "zoom_presets_source_url": "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+      "sources": [
+        "https://developer.apple.com/download/files/accessories/dimensional-drawings/iphone-17-pro-max.pdf",
+        "https://support.apple.com/en-us/125091",
+        "https://support.apple.com/en-sa/guide/iphone/iph72395b28f/ios",
+        "https://support.apple.com/zh-cn/125091"
+      ]
+    }
+  ]
+}

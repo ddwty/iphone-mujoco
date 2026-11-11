@@ -1,9 +1,4 @@
-"""Portable camera profiles and a clearly approximate phone appearance.
-
-Device-specific intrinsics come from a captured runtime frame. Physical body
-dimensions, camera-to-body extrinsics, mass and inertia are unknown until the
-user measures them; the cosmetic rig must not be used for contact/dynamics.
-"""
+"""Portable calibration profiles and phone camera modules."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -101,11 +96,48 @@ def phone_mjcf(calibration: CameraCalibration, *, body_name: str = "iphone",
 </body>'''
 
 
+def configured_phone_mjcf(configuration, *, body_name: str = "iphone",
+                          camera_name: str = "iphone_camera", mocap: bool = False,
+                          visual_group: int = 2, payload: bool = False) -> str:
+    """Return an MJCF module with catalog geometry, assets and selected camera.
+
+    The body frame is screen-right, top, screen-out. Lens coordinates use
+    Apple's mechanical cover centers; optical entrance-pupil offsets can be
+    supplied as ``metadata['phone_from_camera']`` in a measured configuration.
+    """
+    from .devices import get_device, phone_geometry
+    device = get_device(configuration.device_id)
+    assets, body = phone_geometry(device, body_name=body_name,
+                                  region=configuration.region, payload=payload,
+                                  visual_group=visual_group)
+    if mocap:
+        body.set("mocap", "true")
+    optical = configuration.metadata.get("phone_from_camera")
+    transform = (validate_transform(np.asarray(optical, dtype=float)) if optical is not None
+                 else device.phone_from_camera(configuration.lens))
+    from .geometry import CV_TO_MUJOCO_CAMERA
+    camera_pose = transform @ CV_TO_MUJOCO_CAMERA
+    quaternion = np.empty(4)
+    mujoco.mju_mat2Quat(quaternion, np.ascontiguousarray(camera_pose[:3, :3]).ravel())
+    camera = ET.fromstring(camera_mjcf(configuration.calibration, name=camera_name))
+    camera.set("pos", " ".join(map(str, camera_pose[:3, 3])))
+    camera.set("quat", " ".join(map(str, quaternion)))
+    body.append(camera)
+    ET.SubElement(body, "site", name=body_name + "_optical_center",
+                  pos=" ".join(map(str, transform[:3, 3])), size=".003",
+                  rgba=".1 .8 1 .4", group="3")
+    root = ET.Element("mujoco")
+    root.append(assets)
+    ET.SubElement(root, "worldbody").append(body)
+    return ET.tostring(root, encoding="unicode")
+
+
 def write_phone_module(path: str | Path, calibration: CameraCalibration, *,
                        body_name: str = "iphone", camera_name: str = "iphone_camera",
                        mocap: bool = False, visual_group: int = 2,
                        parent_from_body: np.ndarray | None = None,
-                       overwrite: bool = False) -> Path:
+                       overwrite: bool = False, configuration=None,
+                       payload: bool = False) -> Path:
     """Export a portable MJCF include and its RGB/depth calibration sidecar.
 
     Include the XML inside worldbody, or under a robot body for a fixed mount.
@@ -114,10 +146,23 @@ def write_phone_module(path: str | Path, calibration: CameraCalibration, *,
     """
     path = Path(path)
     sidecar = path.with_suffix(".calibration.json")
-    if not overwrite and (path.exists() or sidecar.exists()):
+    asset_path = path.with_suffix(".assets.xml")
+    device_path = path.with_suffix(".device.json")
+    outputs = [path, sidecar] + ([asset_path, device_path] if configuration else [])
+    if not overwrite and any(output.exists() for output in outputs):
         raise FileExistsError(f"Module or calibration already exists: {path}")
-    body = ET.fromstring(phone_mjcf(calibration, body_name=body_name, camera_name=camera_name,
-                                    mocap=mocap, visual_group=visual_group))
+    if configuration is not None:
+        if calibration != configuration.calibration:
+            raise ValueError("Configuration and camera calibration must match")
+        module = ET.fromstring(configured_phone_mjcf(
+            configuration, body_name=body_name, camera_name=camera_name,
+            mocap=mocap, visual_group=visual_group, payload=payload))
+        body = module.find("worldbody/body")
+    else:
+        if payload:
+            raise ValueError("A device configuration is required for payload mass")
+        body = ET.fromstring(phone_mjcf(calibration, body_name=body_name, camera_name=camera_name,
+                                        mocap=mocap, visual_group=visual_group))
     if parent_from_body is not None:
         transform = validate_transform(parent_from_body)
         quat = np.empty(4)
@@ -125,10 +170,17 @@ def write_phone_module(path: str | Path, calibration: CameraCalibration, *,
         body.set("pos", " ".join(map(str, transform[:3, 3])))
         body.set("quat", " ".join(map(str, quat)))
     root = ET.Element("mujocoinclude")
-    root.append(ET.Comment("Approximate visual body; runtime pinhole calibration. Physical mass, inertia and lens mount are unmeasured."))
+    if configuration:
+        root.append(ET.Comment(f"Include {asset_path.name} inside the scene's asset element."))
     root.append(body)
     ET.indent(root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ET.tostring(root, encoding="unicode") + "\n", encoding="utf-8")
     calibration.save(sidecar)
+    if configuration:
+        asset_include = ET.Element("mujocoinclude")
+        asset_include.extend(module.find("asset"))
+        ET.indent(asset_include)
+        asset_path.write_text(ET.tostring(asset_include, encoding="unicode") + "\n", encoding="utf-8")
+        configuration.save(device_path)
     return path

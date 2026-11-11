@@ -111,3 +111,42 @@ def test_exported_phone_lab_compiles_after_relocation(tmp_path):
     camera_id = model.camera("iphone_camera").id
     np.testing.assert_equal(model.cam_resolution[camera_id], [160, 120])
     assert np.isfinite(data.cam_xpos[camera_id]).all()
+
+
+def test_selected_lens_changes_optical_pose_without_moving_lab_phone():
+    from iphone_mujoco.configuration import configure_camera
+    from iphone_mujoco.devices import get_device
+    poses = []
+    for zoom in (.5, 1., 2., 4., 8.):
+        config = configure_camera(zoom=zoom, region="cn")
+        model, data = load_phone_lab(configuration=config)
+        phone = _world_from_body(data, model.body("iphone").id)
+        optical = _world_from_mujoco_camera(data, model.camera("iphone_camera").id)
+        from iphone_mujoco.geometry import CV_TO_MUJOCO_CAMERA
+        expected = phone @ get_device(config.device_id).phone_from_camera(config.lens)
+        np.testing.assert_allclose(optical @ CV_TO_MUJOCO_CAMERA, expected, atol=1e-10)
+        poses.append(phone)
+    for pose in poses[1:]:
+        np.testing.assert_allclose(pose, poses[0], atol=1e-10)
+
+
+def test_catalog_export_is_portable_for_lab_and_robot_body(tmp_path):
+    from iphone_mujoco.configuration import CameraConfiguration, configure_camera
+    from iphone_mujoco.profiles import write_phone_module
+    config = configure_camera("iphone-17-pro", zoom=.5, region="cn", resolution=(320, 240))
+    original = tmp_path / "original"
+    export_phone_lab(original, configuration=config)
+    moved = tmp_path / "moved"
+    shutil.move(str(original), moved)
+    model = mujoco.MjModel.from_xml_path(str(moved / "scene.xml"))
+    assert model.nmesh > 0 and model.ncam >= 1
+    assert CameraConfiguration.load(moved / "device.json").lens == "ultra_wide"
+    write_phone_module(moved / "payload.xml", config.calibration,
+                       configuration=config, payload=True, body_name="payload_phone")
+    host = moved / "host.xml"
+    host.write_text('<mujoco><asset><include file="payload.assets.xml"/></asset>'
+                    '<worldbody><body name="host" pos="0 0 1"><joint/>'
+                    '<include file="payload.xml"/></body></worldbody></mujoco>')
+    model = mujoco.MjModel.from_xml_path(str(host))
+    np.testing.assert_allclose(model.body_mass.sum(), .204, atol=1e-10)
+    assert CameraCalibration.load(moved / "payload.device.json") == config.calibration

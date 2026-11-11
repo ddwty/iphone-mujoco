@@ -10,7 +10,7 @@ from iphone_mujoco import *
 from iphone_mujoco import __version__, __all__
 
 _warnings.warn("asmagic_mujoco is deprecated; use iphone_mujoco", DeprecationWarning, stacklevel=2)
-for _name in ('camera', 'cli', 'control', 'geometry', 'inspection', 'phone_lab', 'phone_scene', 'profiles', 'recording', 'robots', 'streams', 'virtual_device', 'wrist'):
+for _name in ('camera', 'cli', 'configuration', 'control', 'devices', 'geometry', 'inspection', 'phone_lab', 'phone_scene', 'profiles', 'recording', 'robots', 'streams', 'virtual_device', 'wrist'):
     _module = _import_module("iphone_mujoco." + _name)
     _sys.modules[__name__ + "." + _name] = _module
     globals()[_name] = _module

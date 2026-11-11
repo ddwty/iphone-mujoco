@@ -18,7 +18,57 @@ from PIL import Image
 
 from . import __version__
 from .camera import CameraCalibration, MujocoRGBDCamera
-from .profiles import phone_mjcf, write_phone_module
+from .profiles import phone_mjcf, configured_phone_mjcf, write_phone_module
+
+
+def _resolution(value):
+    try:
+        width, height = (int(part) for part in value.lower().split("x"))
+        if min(width, height) <= 0:
+            raise ValueError
+        return width, height
+    except (ValueError, AttributeError):
+        raise argparse.ArgumentTypeError("Resolution must be WIDTHxHEIGHT with positive integers") from None
+
+
+def _camera_configuration(args):
+    """Resolve explicit selection or a bound profile; preserve legacy bare K."""
+    from .configuration import configure_camera
+    device = getattr(args, "device", None)
+    profile = getattr(args, "profile", None)
+    values = json.loads(Path(profile).read_text(encoding="utf-8")) if profile else {}
+    if not isinstance(values, dict):
+        raise ValueError("Camera profile must be a JSON object")
+    bound = values.get("schema") == "iphone_mujoco.camera_configuration"
+    requested = any(getattr(args, key, None) is not None
+                    for key in ("lens", "zoom", "resolution", "depth_resolution", "region"))
+    if device is None and not bound and not requested:
+        if getattr(args, "payload", False):
+            raise ValueError("--payload requires --device or a device-bound --profile")
+        return None
+    device = device or (values["device_id"] if bound else "iphone-17-pro")
+    previous = values.get("calibration", values)
+    resolution = getattr(args, "resolution", None) or (previous.get("width", 640), previous.get("height", 480))
+    depth = getattr(args, "depth_resolution", None)
+    if depth is None:
+        depth = ((previous.get("depth_width") or previous.get("width", 256)),
+                 (previous.get("depth_height") or previous.get("height", 192)))
+    return configure_camera(device, lens=getattr(args, "lens", None),
+                            zoom=getattr(args, "zoom", None), resolution=resolution,
+                            depth_resolution=depth,
+                            region=getattr(args, "region", None) or values.get("region", "us"),
+                            profile=profile)
+
+
+def _camera_options(command, *, payload=False):
+    command.add_argument("--device", help="iPhone catalog ID, e.g. iphone-17-pro; see devices")
+    command.add_argument("--lens", choices=("ultra_wide", "wide", "telephoto"))
+    command.add_argument("--zoom", type=float, help="Published zoom preset, e.g. 0.5, 1, 2, 4 or 8")
+    command.add_argument("--resolution", type=_resolution, help="RGB output WIDTHxHEIGHT; full-raster resize")
+    command.add_argument("--depth-resolution", type=_resolution, help="Registered simulated depth WIDTHxHEIGHT")
+    command.add_argument("--region", choices=("us", "cn"), help="Hardware mass variant (default: us)")
+    if payload:
+        command.add_argument("--payload", action="store_true", help="Add the selected phone mass and estimated box inertia")
 
 
 def demo_calibration():
@@ -37,14 +87,16 @@ def look_at(eye=(1.1, -1.1, 1.), target=(0., 0., .4)):
     return pose
 
 
-def _scene(args, calibration=None):
+def _scene(args, calibration=None, configuration=None):
     from .robots import RobotSpec, load_scene
     if args.robot in ("ur5e", "panda"):
         from .robots import fetch_menagerie
         fetch_menagerie(args.robot, cache_dir=getattr(args, "model_cache", None))
     # get_robot/load_scene own registered and downloaded model resolution.
     selected = RobotSpec.from_json(args.robot) if str(args.robot).endswith(".json") else args.robot
-    return load_scene(selected, phone_xml=phone_mjcf(calibration) if calibration else None,
+    phone = (configured_phone_mjcf(configuration, payload=getattr(args, "payload", False)) if configuration
+             else phone_mjcf(calibration) if calibration else None)
+    return load_scene(selected, phone_xml=phone,
                       model_cache=getattr(args, "model_cache", None))
 
 
@@ -78,8 +130,9 @@ def _save_frame(frame, directory: Path, prefix="camera"):
 
 def simulate(args):
     from .control import CartesianTeleoperator
-    calibration = CameraCalibration.load(args.profile) if args.profile else demo_calibration()
-    model, data, spec = _scene(args, calibration)
+    configuration = _camera_configuration(args)
+    calibration = configuration.calibration if configuration else CameraCalibration.load(args.profile) if args.profile else demo_calibration()
+    model, data, spec = _scene(args, calibration, configuration)
     controller = CartesianTeleoperator(model, data, phone_to_world=np.eye(3),
                                       translation_scale=getattr(args, "translation_scale", 1.), **spec.controller_kwargs)
     output = Path(args.output) if args.output else None
@@ -87,7 +140,9 @@ def simulate(args):
     with ExitStack() as stack:
         viewer = _viewer(stack, model, data, args.headless)
         camera = stack.enter_context(MujocoRGBDCamera(model, calibration))
-        camera.set_world_pose(data, look_at(), move_body=True)
+        from .wrist import WristCameraMount, configured_wrist_mount
+        optical_pose = configured_wrist_mount(WristCameraMount("world", look_at()), configuration).parent_from_camera
+        camera.set_world_pose(data, optical_pose, move_body=True)
         publisher = None
         writer = None
         if args.publish:
@@ -97,6 +152,8 @@ def simulate(args):
         if output:
             from .recording import RecordingWriter
             writer = stack.enter_context(RecordingWriter(output / "recording"))
+            if configuration:
+                configuration.save(output / "device.json")
         anchor = np.eye(4)
         start = time.monotonic()
         controller.update(anchor, receive_time=start, session_id="scripted-demo")
@@ -114,7 +171,9 @@ def simulate(args):
                 frame = camera.render(data, timestamp=time.time())
                 frame.metadata["simulation_time"] = float(data.time)
                 frame.metadata["timestamp_clock"] = "host_wall"
-                frame.metadata["calibration_source"] = str(args.profile) if args.profile else "synthetic-demo"
+                frame.metadata["calibration_source"] = configuration.calibration_source if configuration else str(args.profile) if args.profile else "synthetic-demo"
+                if configuration:
+                    frame.metadata["camera_configuration"] = configuration.to_dict()
                 if writer:
                     writer.write(frame)
                 if publisher:
@@ -131,7 +190,7 @@ def simulate(args):
                 if delay > 0:
                     time.sleep(min(delay, .02))
         result = {"robot": spec.name, "physics_steps": step_index, "camera_frames": frame_count,
-                  "simulation_seconds": float(data.time), "calibration_source": "device-profile" if args.profile else "synthetic-demo"}
+                  "simulation_seconds": float(data.time), "calibration_source": configuration.calibration_source if configuration else "device-profile" if args.profile else "synthetic-demo"}
         if output:
             (output / "run.json").write_text(json.dumps(result, indent=2) + "\n")
         print(json.dumps(result, indent=2))
@@ -146,10 +205,15 @@ def calibrate(args):
         while time.monotonic() < deadline:
             sample = source.poll(timeout_s=.1)
             if sample and sample.rgbd is not None:
-                sample.rgbd.calibration.save(output)
                 metadata = {"source": "asMagic-live", "ip": args.ip, "sender_timestamp": sample.timestamp,
                             "session_id": sample.session_id, "frame_id": sample.frame_id,
                             "pose_convention": args.pose_convention, "stream_metadata": sample.metadata}
+                if args.device:
+                    from .configuration import bind_runtime_calibration
+                    bind_runtime_calibration(sample.rgbd.calibration, device_id=args.device,
+                                             region=args.region or "us", metadata=metadata).save(output)
+                else:
+                    sample.rgbd.calibration.save(output)
                 Path(str(output) + ".source.json").write_text(json.dumps(metadata, indent=2, default=str) + "\n", encoding="utf-8")
                 print(f"Saved received camera intrinsics to {output}")
                 return
@@ -204,8 +268,15 @@ def live_camera(args):
                     raise RuntimeError("iPhone coordinate session changed; capture a new world alignment before continuing")
                 alignment = None
             previous_session = sample.session_id
+            configuration = None
+            if getattr(args, "device", None):
+                from .configuration import bind_runtime_calibration
+                configuration = bind_runtime_calibration(
+                    real.calibration, device_id=args.device, region=args.region or "us",
+                    metadata={"session_id": sample.session_id, "frame_id": real.frame_id,
+                              "stream_metadata": sample.metadata})
             if model is None:
-                model, data, spec = _scene(args, real.calibration)
+                model, data, spec = _scene(args, real.calibration, configuration)
                 viewer = _viewer(stack, model, data, args.headless)
             if alignment is None:
                 # An explicit initial relative registration, not a claim that the
@@ -225,12 +296,17 @@ def live_camera(args):
                                        "timestamp_clock": real.metadata.get("timestamp_clock", "sender_source"),
                                        "world_from_sender_alignment": alignment.tolist(),
                                        "registration": "supplied-transform" if args.world_transform else "relative-first-frame"})
+            if configuration:
+                simulated.metadata["camera_configuration"] = configuration.to_dict()
+                simulated.metadata["calibration_source"] = configuration.calibration_source
             if measured:
                 measured.write(sample)
                 virtual.write(simulated)
             if output and (count == 0 or (real.rgb is not None and not (output / "real_rgb.png").exists())):
                 _save_frame(real, output, "real")
                 _save_frame(simulated, output, "simulation")
+                if configuration:
+                    configuration.save(output / "device.json")
                 (output / "world_from_stream.json").write_text(json.dumps(alignment.tolist(), indent=2) + "\n")
             if viewer:
                 viewer.sync()
@@ -343,11 +419,15 @@ def teleop(args, replay=False):
 
 
 def export_phone(args):
-    calibration = CameraCalibration.load(args.profile) if args.profile else demo_calibration()
+    configuration = _camera_configuration(args)
+    calibration = configuration.calibration if configuration else CameraCalibration.load(args.profile) if args.profile else demo_calibration()
     write_phone_module(args.output, calibration, body_name=args.body_name,
-                       camera_name=args.camera_name, mocap=args.mocap, overwrite=args.overwrite)
+                       camera_name=args.camera_name, mocap=args.mocap, overwrite=args.overwrite,
+                       configuration=configuration, payload=args.payload)
     print(f"Include {args.output} inside your MJCF worldbody or robot body. Camera: {args.camera_name}")
     print(f"RGB/depth calibration: {Path(args.output).with_suffix('.calibration.json')}")
+    if configuration:
+        print(f"Include {Path(args.output).with_suffix('.assets.xml')} inside your scene's asset element.")
 
 
 def doctor(args):
@@ -398,7 +478,32 @@ def main(argv=None):
     inspect.add_argument("recording", help="Episode directory containing manifest.json and frames/")
     inspect.add_argument("--json", action="store_true", help="Print the complete machine-readable summary")
     inspect.set_defaults(func=inspect_recording)
+    devices = sub.add_parser("devices", help="List sourced iPhone geometry, mass variants and lens presets")
+    devices.add_argument("--device", help="Show one catalog entry as JSON")
+    def devices_command(args):
+        from .devices import device_ids, get_device
+        if args.device:
+            print(json.dumps(get_device(args.device).to_dict(), indent=2))
+        else:
+            for device_id in device_ids():
+                device = get_device(device_id)
+                print(f"{device_id}: {device.width_m*1000:g} x {device.height_m*1000:g} x {device.thickness_m*1000:g} mm")
+    devices.set_defaults(func=devices_command)
+    configure = sub.add_parser("configure-camera", help="Save a device, lens, projection and output-resolution profile")
+    _camera_options(configure)
+    configure.add_argument("--profile", help="Bind supplied intrinsics or resize a matching measured configuration")
+    configure.add_argument("--output", required=True)
+    def configure_command(args):
+        if not args.device and not args.profile:
+            args.device = "iphone-17-pro"
+        config = _camera_configuration(args)
+        if config is None:
+            raise ValueError("Use --device to bind bare intrinsics to a specific iPhone")
+        config.save(args.output)
+        print(f"Saved {config.device_id} / {config.lens} / {config.zoom:g}x: {args.output} ({config.calibration_source})")
+    configure.set_defaults(func=configure_command)
     lab = sub.add_parser("phone-lab", help="Open the visible virtual iPhone with RGB-D previews and tabletop experiments")
+    _camera_options(lab)
     lab.add_argument("--profile", help="Saved runtime iPhone calibration; otherwise use a labeled synthetic example")
     lab.add_argument("--duration", type=float, default=0., help="Wall seconds; 0 keeps the window open")
     lab.add_argument("--fps", type=float, default=10., help="Maximum preview refresh rate")
@@ -408,12 +513,14 @@ def main(argv=None):
     from .phone_lab import run_phone_lab
     lab.set_defaults(func=run_phone_lab)
     export_lab = sub.add_parser("export-lab", help="Export a standalone MuJoCo scene plus reusable iPhone module")
+    _camera_options(export_lab)
     export_lab.add_argument("--profile")
     export_lab.add_argument("--output", required=True, help="New or empty export directory")
     def export_lab_command(args):
         from .phone_scene import export_phone_lab
-        calibration = CameraCalibration.load(args.profile) if args.profile else None
-        print(export_phone_lab(args.output, calibration))
+        configuration = _camera_configuration(args)
+        calibration = configuration.calibration if configuration else CameraCalibration.load(args.profile) if args.profile else None
+        print(export_phone_lab(args.output, calibration, configuration=configuration))
     export_lab.set_defaults(func=export_lab_command)
     models = sub.add_parser("models", help="List or download the supported robot models")
     models.add_argument("--fetch", choices=("panda", "ur5e"))
@@ -433,6 +540,7 @@ def main(argv=None):
         command.add_argument("--output", help="Record into a new directory")
         command.add_argument("--translation-scale", type=float, default=1., help="Robot/phone translation ratio; try 0.25 for smaller targets")
     sim = sub.add_parser("simulate", help="Run a robot with a calibrated virtual iPhone camera")
+    _camera_options(sim, payload=True)
     robot_options(sim)
     sim.add_argument("--profile", help="JSON intrinsics captured with calibrate")
     sim.add_argument("--steps", type=int, default=0)
@@ -441,11 +549,12 @@ def main(argv=None):
     sim.add_argument("--publish", metavar="ENDPOINT", help="e.g. tcp://127.0.0.1:18000")
     sim.set_defaults(func=simulate)
     wrist = sub.add_parser("capture-wrist", help="Collect synchronized wrist RGB-D and robot states using iPhone calibration")
+    _camera_options(wrist, payload=True)
     wrist.add_argument("--robot", default="panda", help="panda (default), ur5e, or custom adapter JSON")
     wrist.add_argument("--model-cache")
-    wrist.add_argument("--profile", required=True, help="Calibration JSON from calibrate or the synthetic export-lab example")
+    wrist.add_argument("--profile", help="Calibration or device configuration JSON; --device uses published optical presets")
     wrist.add_argument("--mount", help="Measured parent-link <- CV camera mount JSON; default is a demo mount")
-    wrist.add_argument("--show-phone", action="store_true", help="Show an approximate massless phone shell at the optical mount")
+    wrist.add_argument("--show-phone", action="store_true", help="Show the mounted phone and flange support")
     wrist.add_argument("--output", required=True, help="New dataset directory")
     wrist.add_argument("--duration", type=float, default=10., help="Simulation seconds; 0 runs until stopped")
     wrist.add_argument("--fps", type=float, default=30., help="Frames per simulation second")
@@ -462,6 +571,8 @@ def main(argv=None):
     wrist.set_defaults(func=capture_command)
     cal = sub.add_parser("calibrate", help="Save actual per-frame iPhone intrinsics")
     cal.add_argument("--ip", required=True)
+    cal.add_argument("--device", help="Bind the AR main-camera calibration to a catalog iPhone ID")
+    cal.add_argument("--region", choices=("us", "cn"))
     cal.add_argument("--output", required=True)
     cal.add_argument("--timeout", type=float, default=15.)
     cal.add_argument("--pose-convention", choices=("arkit", "robotics"), default="arkit")
@@ -476,6 +587,8 @@ def main(argv=None):
     cam = sub.add_parser("camera", help="Move a virtual camera with live iPhone poses; save paired real/sim RGB-D")
     robot_options(cam)
     cam.add_argument("--ip", required=True)
+    cam.add_argument("--device", help="Show the identified iPhone with runtime AR main-camera calibration")
+    cam.add_argument("--region", choices=("us", "cn"))
     cam.add_argument("--pose-convention", choices=("arkit", "robotics"), default="arkit")
     cam.add_argument("--world-transform", help="JSON 4x4 mapping stream Z-up world into the virtual world")
     cam.set_defaults(func=live_camera)
@@ -489,6 +602,7 @@ def main(argv=None):
     replay_parser.add_argument("--speed", type=float, default=1.)
     replay_parser.set_defaults(func=lambda args: teleop(args, replay=True))
     export = sub.add_parser("export-phone", help="Export a portable MJCF phone include")
+    _camera_options(export, payload=True)
     export.add_argument("--profile")
     export.add_argument("--output", required=True)
     export.add_argument("--body-name", default="iphone")

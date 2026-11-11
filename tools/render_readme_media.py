@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from iphone_mujoco import MujocoRGBDCamera
+from iphone_mujoco.configuration import configure_camera
 from iphone_mujoco.phone_lab import _frustum, depth_preview
 from iphone_mujoco.phone_scene import (
     VIEWER_SETTINGS, default_world_from_camera, demo_calibration, load_phone_lab,
@@ -49,7 +50,7 @@ def panel(overview, frame, title, subtitle):
     position = frame.world_from_camera[:3, 3]
     draw.text((16, 459), "CAMERA WORLD XYZ  " + "  ".join(f"{x:+.3f}" for x in position) + " m",
               font=font(13), fill="#a1bdcf")
-    draw.text((16, 487), "MUJOCO SIMULATION  |  synthetic K  |  ideal optical Z  |  synchronized views",
+    draw.text((16, 487), "iPhone 17 Pro  |  RGB-D  |  optical Z depth  |  synchronized views",
               font=font(12), fill="#6cdddf")
     return canvas
 
@@ -74,8 +75,9 @@ def overview_camera(settings):
 
 
 def lab_frames(count):
-    calibration = demo_calibration()
-    model, data = load_phone_lab(calibration)
+    configuration = configure_camera(region="cn")
+    calibration = configuration.calibration
+    model, data = load_phone_lab(configuration=configuration)
     view = overview_camera(VIEWER_SETTINGS)
     frames = []
     with MujocoRGBDCamera(model, calibration, max_depth_m=6.55345, hidden_geom_groups=(3,)) as sensor, \
@@ -93,9 +95,11 @@ def lab_frames(count):
 
 
 def wrist_frames(robot, count):
-    calibration = demo_calibration()
+    configuration = configure_camera(region="cn")
+    calibration = configuration.calibration
     mount = default_wrist_mount(robot)
-    model, data, spec = load_scene(robot, phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True),
+    model, data, spec = load_scene(robot, phone_xml=wrist_camera_mjcf(calibration, mount, show_phone=True,
+                                                                     configuration=configuration),
                                    phone_parent_body=mount.parent_body)
     _place_demo_targets(model, data, mount.camera_name)
     model.vis.headlight.ambient[:] = .4
@@ -114,16 +118,42 @@ def wrist_frames(robot, count):
                 data.ctrl[actuators] = desired
                 mujoco.mj_step(model, data)
             frame = sensor.render(data)
+            close_mount = robot == "ur5e" and len(frames) >= count // 2
+            if close_mount:
+                view.lookat[:] = frame.world_from_camera[:3, 3]
+                view.distance = .40
+                view.azimuth = 220.
+                view.elevation = -25.
             image = render_overview(overview, model, data, view, frame)
             name = "Franka Panda" if robot == "panda" else "Universal Robots UR5e"
             frames.append(panel(image, frame, "iPhone MuJoCo / " + name,
-                                "Rigid link mount. RGB-D follows forward kinematics and joint motion."))
+                                "Flange collar, brace and phone clamp. Lens aligned with the TCP plane." if close_mount
+                                else "Rigid link mount. RGB-D follows forward kinematics and joint motion."))
+    return frames
+
+
+def lens_frames():
+    frames = []
+    for zoom in (.5, 1., 2., 4., 8.):
+        configuration = configure_camera(zoom=zoom, region="cn")
+        calibration = configuration.calibration
+        model, data = load_phone_lab(configuration=configuration)
+        view = overview_camera(VIEWER_SETTINGS)
+        with MujocoRGBDCamera(model, calibration, max_depth_m=6.55345, hidden_geom_groups=(3,)) as sensor, \
+                mujoco.Renderer(model, height=384, width=512) as overview:
+            frame = sensor.render(data)
+            image = render_overview(overview, model, data, view, frame)
+            focal = configuration.metadata["camera_mode"]["equivalent_focal_mm"]
+            result = panel(image, frame, f"iPhone 17 Pro / {zoom:g}x / {configuration.lens}",
+                           f"{focal:g} mm equivalent. Fixed phone mount, selected lens and crop.")
+            frames.extend([result] * 8)
     return frames
 
 
 def mobile_frames(count):
-    calibration = demo_calibration()
-    model, data, camera_name = build_scene("mobile", calibration)
+    configuration = configure_camera(region="cn")
+    calibration = configuration.calibration
+    model, data, camera_name = build_scene("mobile", calibration, configuration=configuration)
     view = overview_camera({"lookat": [0., 0., .25], "distance": 3.6,
                             "azimuth": 132., "elevation": -32.})
     frames = []
@@ -139,7 +169,7 @@ def mobile_frames(count):
     return frames
 
 
-def save_animation(frames, path, fps):
+def save_animation(frames, path, fps, *, poster_fraction=.25):
     # One palette across the clip avoids flicker and bounds download size.
     samples = np.linspace(0, len(frames) - 1, min(8, len(frames)), dtype=int)
     atlas = Image.new("RGB", (408, 254 * len(samples)))
@@ -149,7 +179,7 @@ def save_animation(frames, path, fps):
     indexed = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in frames]
     indexed[0].save(path, save_all=True, append_images=indexed[1:], duration=round(1000 / fps),
                     loop=0, optimize=True, disposal=2)
-    frames[len(frames) // 4].save(path.with_suffix(".png"))
+    frames[min(len(frames)-1, int(len(frames)*poster_fraction))].save(path.with_suffix(".png"))
     return {"file": path.name, "frames": len(frames), "width": 816, "height": 508,
             "playback_fps": fps, "bytes": path.stat().st_size}
 
@@ -165,7 +195,7 @@ def main():
     args = parser.parse_args()
     if not 4 <= args.frames <= 120 or not 4 <= args.robot_frames <= 60 or not 1 <= args.fps <= 30:
         parser.error("Use 4-120 clip frames, 4-60 robot frames and 1-30 playback FPS")
-    paths = [args.output / name for name in ("phone-lab.gif", "robot-wrist.gif", "mobile-camera.gif")]
+    paths = [args.output / name for name in ("phone-lab.gif", "robot-wrist.gif", "mobile-camera.gif", "camera-lenses.gif")]
     if any(path.exists() or path.with_suffix(".png").exists() for path in paths):
         parser.error("Animation or preview already exists. Choose a new output directory.")
     args.output.mkdir(parents=True, exist_ok=True)
@@ -174,8 +204,9 @@ def main():
     wrist = []
     for robot in args.robots:
         wrist.extend(wrist_frames(robot, args.robot_frames))
-    print(json.dumps(save_animation(wrist, paths[1], args.fps)), flush=True)
+    print(json.dumps(save_animation(wrist, paths[1], args.fps, poster_fraction=.85)), flush=True)
     print(json.dumps(save_animation(mobile_frames(args.frames), paths[2], args.fps)), flush=True)
+    print(json.dumps(save_animation(lens_frames(), paths[3], args.fps)), flush=True)
 
 
 if __name__ == "__main__":
