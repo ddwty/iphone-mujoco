@@ -67,4 +67,3 @@ def add_arm_workcell(root: ET.Element) -> None:
          contype="0", conaffinity="0")
     geom("inspection_boss_rim", "cylinder", ".4 -.25 .102", ".035 .002", "cell_frame",
          contype="0", conaffinity="0")
-
