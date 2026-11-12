@@ -337,7 +337,7 @@ def test_mainstream_default_wrist_observes_demo_targets(robot_name):
     _place_demo_targets(model, data, mount.camera_name)
     pose = _world_from_cv_camera(data, model.camera(mount.camera_name).id)
     assert pose[2, 2] < -.8
-    targets = np.array([data.geom_xpos[model.geom(name).id] for name in ("reference_cube", "reference_sphere")])
+    targets = np.array([data.geom_xpos[model.geom(name).id] for name in ("gauge_block", "inspection_boss")])
     optical_points = transform_points(targets, np.linalg.inv(pose))
     assert np.all(optical_points[:, 2] > 0)
     pixels = project_points(optical_points, calibration)

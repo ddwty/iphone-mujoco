@@ -1,0 +1,162 @@
+{
+  "repository": "google-deepmind/mujoco_menagerie",
+  "commit": "370c43965323c0944b433b202aac5058b5f907a9",
+  "directory": "pal_tiago",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "size": 223,
+      "git_blob_sha1": "820d6993b5dc63a3f01f72cd174abe82e856af49"
+    },
+    {
+      "path": "LICENSE",
+      "size": 11357,
+      "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    },
+    {
+      "path": "README.md",
+      "size": 2137,
+      "git_blob_sha1": "5c2993bd23dca73f34a423e71a35d305b1f15c53"
+    },
+    {
+      "path": "assets/arm/arm_1.stl",
+      "size": 240384,
+      "git_blob_sha1": "a294d59958514d9c32f036e1f5f068a49b509d48"
+    },
+    {
+      "path": "assets/arm/arm_2.stl",
+      "size": 988384,
+      "git_blob_sha1": "65518489e87509ec05780b8e68da9b670f70c3be"
+    },
+    {
+      "path": "assets/arm/arm_3.stl",
+      "size": 491084,
+      "git_blob_sha1": "51f97d40def82a1018f3f716923879b7839f3c16"
+    },
+    {
+      "path": "assets/arm/arm_4.stl",
+      "size": 407534,
+      "git_blob_sha1": "015de6e3b90f04faf6cc0916cb41b6bb5cce40c2"
+    },
+    {
+      "path": "assets/arm/arm_5-wrist-2017.stl",
+      "size": 187984,
+      "git_blob_sha1": "59fa308f4e9744331b1d0183e414a7ff3ddde488"
+    },
+    {
+      "path": "assets/arm/arm_6-wrist-2017.stl",
+      "size": 140184,
+      "git_blob_sha1": "4355323e4c27782e967bc89df7846ee656a4fd9e"
+    },
+    {
+      "path": "assets/base/base.stl",
+      "size": 1072284,
+      "git_blob_sha1": "4426bb41c9849d0c8e72f2f7d8b7396251e1348a"
+    },
+    {
+      "path": "assets/base/base_ring.stl",
+      "size": 86484,
+      "git_blob_sha1": "cb86e0c7654bd7fe0eab3f772ed6544f9c712162"
+    },
+    {
+      "path": "assets/gripper/gripper_finger_link.stl",
+      "size": 71634,
+      "git_blob_sha1": "e5cf5df5fa2b03f7b6eae862c7582ed8f262473e"
+    },
+    {
+      "path": "assets/gripper/gripper_link.stl",
+      "size": 349634,
+      "git_blob_sha1": "e4e990d3a1a232798b6a0c994b0efe78481745ec"
+    },
+    {
+      "path": "assets/head/head_1.stl",
+      "size": 80884,
+      "git_blob_sha1": "4df48f6646d91f3231360ed18faf6525a0003e67"
+    },
+    {
+      "path": "assets/head/head_2.stl",
+      "size": 144884,
+      "git_blob_sha1": "c0c6a15037ad73302044be79b4b813b06629b8f3"
+    },
+    {
+      "path": "assets/objects/antenna.stl",
+      "size": 197484,
+      "git_blob_sha1": "431e6a2d442102ad09ba46cdf81851c9f1dbce0f"
+    },
+    {
+      "path": "assets/sensors/sick_tim551.stl",
+      "size": 100084,
+      "git_blob_sha1": "960b8412a9c8b87772baf962b7de7d8a06d171dd"
+    },
+    {
+      "path": "assets/sensors/srf05.stl",
+      "size": 2534,
+      "git_blob_sha1": "566c942f943b2b7acfd8dcfd424e6357a8dabf7c"
+    },
+    {
+      "path": "assets/torso/torso_fix.stl",
+      "size": 299684,
+      "git_blob_sha1": "316042010354ddbf00a953f013c1b1ec508d89f0"
+    },
+    {
+      "path": "assets/torso/torso_lift_with_arm.stl",
+      "size": 126784,
+      "git_blob_sha1": "187ea47b8ff2e1a2f92cf039cd87d889ed73a3f7"
+    },
+    {
+      "path": "assets/wheels/caster_1.stl",
+      "size": 40034,
+      "git_blob_sha1": "78c9e3b132f170dbb42aae73a2b047e0ec1a3d5d"
+    },
+    {
+      "path": "assets/wheels/caster_2.stl",
+      "size": 25084,
+      "git_blob_sha1": "1628f5293315a5d1fac73cd115d86ab97b28754c"
+    },
+    {
+      "path": "assets/wheels/wheel.stl",
+      "size": 300034,
+      "git_blob_sha1": "71f9a4b27a99429cfa48ebbec39b8ce735dafd0f"
+    },
+    {
+      "path": "scene_motor.xml",
+      "size": 918,
+      "git_blob_sha1": "dee857cf0eab8a0f3fdd2eefce65bbff7b09b5e7"
+    },
+    {
+      "path": "scene_position.xml",
+      "size": 924,
+      "git_blob_sha1": "3685e8625c62fd1dc4691c83ca179e8166f6c921"
+    },
+    {
+      "path": "scene_velocity.xml",
+      "size": 924,
+      "git_blob_sha1": "5bc3922b483facfc704822da0495f973596a2e05"
+    },
+    {
+      "path": "tiago.png",
+      "size": 360903,
+      "git_blob_sha1": "a7eb856678ad595409158e3719b2da58e1f5a350"
+    },
+    {
+      "path": "tiago.xml",
+      "size": 11666,
+      "git_blob_sha1": "28174457b47e712eaee6c09de71b86871bc0c0af"
+    },
+    {
+      "path": "tiago_motor.xml",
+      "size": 1710,
+      "git_blob_sha1": "b4f7bf92ee6e1bdd0737cb70ef323b1bf0fb6d2f"
+    },
+    {
+      "path": "tiago_position.xml",
+      "size": 2584,
+      "git_blob_sha1": "8d4cd62f2b8330d106df17f24a8bcb402939f6bb"
+    },
+    {
+      "path": "tiago_velocity.xml",
+      "size": 2038,
+      "git_blob_sha1": "d2d8f0d1c5ebbdc08e30de547460bead732b3653"
+    }
+  ]
+}

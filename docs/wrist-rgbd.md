@@ -35,6 +35,11 @@ Models use Google DeepMind's MuJoCo Menagerie assets at a pinned commit,
 with per-file checks and upstream licenses. The first download needs a network
 connection. Later runs reuse the local cache.
 
+The workcell contains inspection fixtures, gauge parts and calibration
+surfaces. The robot moves through its upstream joints and position servos;
+camera poses come from forward kinematics. TIAGo wheel-control and mobile
+datasets use the separate [mobile API](phone-lab.md#mobile-data-and-control).
+
 Download UR5e and select it with `--robot`.
 
 ```bash

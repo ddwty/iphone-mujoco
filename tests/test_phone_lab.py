@@ -9,7 +9,7 @@ import pytest
 
 from iphone_mujoco.camera import CameraCalibration
 from iphone_mujoco.geometry import pose_from_xyzw
-from iphone_mujoco.phone_scene import export_phone_lab, load_phone_lab
+from iphone_mujoco.phone_scene import LAB_METRICS, SCENE_PATH, export_phone_lab, load_phone_lab
 
 
 def _world_from_body(data, body_id):
@@ -82,9 +82,57 @@ def test_phone_lab_has_visible_mocap_phone_and_requested_calibration():
     phone_geoms = np.flatnonzero(model.geom_bodyid == phone_id)
     assert len(phone_geoms) >= 3
     assert np.all(options.geomgroup[model.geom_group[phone_geoms]] != 0)
-    assert np.all(model.geom_rgba[phone_geoms, 3] > 0)
+    invisible = phone_geoms[model.geom_rgba[phone_geoms, 3] == 0]
+    assert [model.geom(index).name for index in invisible] == ["iphone_shell_bounds"]
     assert np.all(model.geom_contype[phone_geoms] == 0)
     np.testing.assert_allclose(data.cam_xpos[camera_id], [0., -.8, 1.05], atol=1e-8)
+
+
+def test_inspection_bench_preserves_metric_fixtures_and_has_a_connected_phone_stand():
+    from iphone_mujoco.devices import get_device
+    model, data = load_phone_lab()
+    table = model.geom("tabletop").id
+    top = data.geom_xpos[table, 2] + model.geom_size[table, 2]
+    np.testing.assert_allclose(top, LAB_METRICS["table_top_height_m"], atol=1e-12)
+    for height in (40, 80, 120):
+        step = model.geom(f"step_{height}mm").id
+        np.testing.assert_allclose(data.geom_xpos[step, 2] - model.geom_size[step, 2], top, atol=1e-12)
+        np.testing.assert_allclose(data.geom_xpos[step, 2] + model.geom_size[step, 2] - top, height / 1000, atol=1e-12)
+    checker = [model.geom(f"checker_0_{col}").id for col in range(8)]
+    np.testing.assert_allclose(np.diff(data.geom_xpos[checker, 0]), LAB_METRICS["checker_square_m"], atol=1e-12)
+    ruler = [model.geom(f"ruler_tick_{index}").id for index in range(11)]
+    np.testing.assert_allclose(np.diff(data.geom_xpos[ruler, 0]), LAB_METRICS["ruler_major_spacing_m"], atol=1e-12)
+    np.testing.assert_allclose(model.geom_size[model.geom("ruler_minor_tick_1").id, 0], .00035)
+
+    assert model.nmesh >= 3
+    device = get_device("iphone-17-pro")
+    phone = model.body("iphone").id
+    plate = model.geom("iphone_mount_backplate").id
+    local_plate = (data.geom_xpos[plate] - data.xpos[phone]) @ data.xmat[phone].reshape(3, 3)
+    np.testing.assert_allclose(local_plate[2] - model.geom_size[plate, 2], device.thickness_m / 2, atol=1e-12)
+    for side, sign in (("left", -1), ("right", 1)):
+        jaw = model.geom("iphone_mount_jaw_" + side).id
+        local_jaw = (data.geom_xpos[jaw] - data.xpos[phone]) @ data.xmat[phone].reshape(3, 3)
+        np.testing.assert_allclose(sign * local_jaw[0] - model.geom_size[jaw, 0], device.width_m / 2, atol=1e-12)
+    socket = model.geom("stand_ball_head_socket").id
+    axis = data.geom_xmat[socket].reshape(3, 3)[:, 2]
+    endpoints = data.geom_xpos[socket] + np.outer([-1, 1], axis * model.geom_size[socket, 1])
+    ball = data.geom_xpos[model.geom("iphone_mount_ball").id]
+    np.testing.assert_allclose(np.min(np.linalg.norm(endpoints - ball, axis=1)), 0., atol=1e-12)
+
+
+def test_standalone_inspection_stage_moves_through_its_servo():
+    model = mujoco.MjModel.from_xml_path(str(SCENE_PATH))
+    data = mujoco.MjData(model)
+    joint = model.joint("inspection_slide").id
+    actuator = model.actuator("inspection_slide_drive").id
+    address = int(model.jnt_qposadr[joint])
+    np.testing.assert_allclose(model.jnt_range[joint], [-.08, .08])
+    data.ctrl[actuator] = .06
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+    assert .04 < data.qpos[address] < .08
+    assert np.isfinite(data.qpos).all() and np.isfinite(data.qvel).all()
 
 
 def test_exported_phone_lab_compiles_after_relocation(tmp_path):

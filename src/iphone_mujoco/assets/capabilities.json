@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "package_version": "0.4.2",
+  "package_version": "0.6.0",
   "transport_provider": "PyPI asmagic >=1.0.1,<2",
   "implemented": [
     "live_rgbd",
@@ -23,12 +23,20 @@
     "legacy_import_identity_compatibility",
     "visible_wrist_phone",
     "arbitrary_mjcf_camera_attachment_example",
-    "scripted_mobile_rgbd_example",
-    "known_pose_voxel_fusion_example"
+    "known_pose_voxel_fusion_example",
+    "sourced_iphone_hardware_catalog",
+    "camera_lens_zoom_output_selection",
+    "regional_phone_payload_mass",
+    "actuated_inspection_bench",
+    "tiago_wheel_contact_dynamics",
+    "wheel_encoder_odometry",
+    "synchronized_mobile_rgbd_state",
+    "public_scene_recording_api"
   ],
   "robots": [
     "panda",
-    "ur5e"
+    "ur5e",
+    "tiago"
   ],
   "unimplemented": [
     "imu_simulation",
@@ -44,18 +52,12 @@
     "arkit_tracking_error"
   ],
   "unknown_without_measurement": [
-    "phone_body_dimensions",
-    "phone_mass_inertia",
-    "camera_to_body_mount",
+    "phone_center_of_mass_inertia_tensor",
+    "optical_entrance_pupil",
+    "hand_eye_extrinsics",
     "lens_distortion",
     "rgb_depth_extrinsics"
   ],
   "camera_model": "ideal_pinhole_registered_optical_axis_depth",
-  "default_phone_appearance": "approximate_visual_only_collision_disabled",
-  "physical_iphone_validation": {
-    "camera": "71 paired frames; 590 packets; 2026-10-23",
-    "teleoperation": "live Panda and UR5e follow/clutch cycles verified",
-    "precision_tracking": "not validated; substantial dynamic target residuals",
-    "physical_sensor_model": "ideal only; hardware effects unimplemented"
-  }
+  "default_phone_appearance": "sourced_iphone_17_pro_geometry_collision_disabled"
 }

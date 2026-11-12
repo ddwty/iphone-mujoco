@@ -50,7 +50,7 @@ jobs:
         run: |
           python -c "import iphone_mujoco; assert 'site-packages' in iphone_mujoco.__file__, iphone_mujoco.__file__"
           iphone-mujoco doctor
-          python -m pytest -q tests/test_camera.py tests/test_devices.py tests/test_configuration.py tests/test_phone_lab.py tests/test_wrist.py tests/test_repo_hygiene.py tests/test_cli_contracts.py tests/test_compatibility.py tests/test_control.py::test_clutch_stale_session_and_rezero_reanchor_without_jump tests/test_streams.py::test_episode_roundtrip_preserves_provenance_without_pickle tests/test_streams.py::test_rgbd_episode_preserves_calibration_confidence_and_pixel_data
+          python -m pytest -q tests/test_camera.py tests/test_devices.py tests/test_configuration.py tests/test_experiments.py tests/test_mobile.py tests/test_phone_lab.py tests/test_wrist.py tests/test_repo_hygiene.py tests/test_cli_contracts.py tests/test_compatibility.py tests/test_control.py::test_clutch_stale_session_and_rezero_reanchor_without_jump tests/test_streams.py::test_episode_roundtrip_preserves_provenance_without_pickle tests/test_streams.py::test_rgbd_episode_preserves_calibration_confidence_and_pixel_data
       - name: Check clean source export
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         run: python tools/export_source.py --output "$RUNNER_TEMP/iphone-mujoco-source.zip"
@@ -112,6 +112,9 @@ jobs:
           PY
       - name: Run camera mounting examples and fuse a sequence
         run: |
+          iphone-mujoco models --fetch tiago
+          IPHONE_MUJOCO_TEST_RENDER=1 xvfb-run -a python -m pytest tests/test_mobile.py tests/test_experiments.py -q
+          xvfb-run -a iphone-mujoco capture-mobile --device iphone-17-pro --headless --duration .2 --fps 10 --output "$RUNNER_TEMP/tiago-cli"
           xvfb-run -a python examples/scene_camera.py --scenario mobile --headless --duration .2 --fps 10 --output "$RUNNER_TEMP/mobile-camera"
           iphone-mujoco inspect-episode "$RUNNER_TEMP/mobile-camera/episode" --json
           python examples/fuse_episode.py "$RUNNER_TEMP/mobile-camera/episode" --output "$RUNNER_TEMP/mobile-map" --stride 8

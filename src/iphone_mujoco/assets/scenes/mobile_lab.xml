@@ -1,0 +1,107 @@
+<mujoco model="Mobile perception laboratory">
+  <option timestep="0.002" integrator="implicitfast"/>
+  <visual>
+    <global offwidth="1280" offheight="960"/>
+    <quality shadowsize="4096"/>
+    <headlight ambient=".2 .2 .2" diffuse=".45 .45 .45" specular=".15 .15 .15"/>
+    <map znear=".005" zfar="16"/>
+  </visual>
+  <asset>
+    <texture name="lab_sky" type="skybox" builtin="gradient" rgb1=".65 .70 .74" rgb2=".87 .89 .91" width="512" height="3072"/>
+    <material name="lab_floor" rgba=".34 .37 .40 1" specular=".15" shininess=".15"/>
+    <material name="lab_wall" rgba=".76 .78 .80 1" specular=".05"/>
+    <material name="lab_steel" rgba=".30 .34 .38 1" specular=".7" shininess=".5"/>
+    <material name="lab_aluminium" rgba=".64 .68 .72 1" specular=".8" shininess=".6"/>
+    <material name="lab_bin" rgba=".18 .25 .30 1" specular=".2"/>
+    <material name="lab_panel" rgba=".86 .87 .87 1" specular=".15"/>
+  </asset>
+  <worldbody>
+    <light name="lab_key" pos="0 -2 4.5" dir=".25 .3 -1" diffuse=".75 .75 .75" specular=".4 .4 .4"/>
+    <light name="lab_fill" pos="3 2 3.8" dir="-.2 -.2 -1" diffuse=".45 .45 .45" castshadow="false"/>
+    <geom name="lab_floor" type="plane" size="6 5 .1" material="lab_floor" friction="1 .005 .0001"/>
+    <geom name="lab_back_wall" type="box" pos="3.6 0 1.4" size=".08 3 1.4" material="lab_wall"/>
+    <geom name="lab_side_wall" type="box" pos=".3 2.9 1.4" size="3.3 .08 1.4" material="lab_wall"/>
+    <geom name="lab_entry_wall" type="box" pos="-3.4 0 1.4" size=".08 2.9 1.4" material="lab_wall"/>
+    <geom name="lab_service_wall" type="box" pos=".1 -2.9 1.4" size="3.4 .08 1.4" material="lab_wall"/>
+    <body name="lab_entry_door" pos="-3.305 .85 0">
+      <geom type="box" pos="0 0 1.07" size=".018 .50 1.07" material="lab_steel"/>
+      <geom type="box" pos=".020 0 1.06" size=".006 .465 1.035" rgba=".46 .50 .53 1"/>
+      <geom type="box" pos=".028 0 1.62" size=".002 .25 .28" rgba=".23 .30 .34 1"/>
+      <geom type="capsule" fromto=".06 -.33 .96 .06 -.33 1.18" size=".012" material="lab_aluminium"/>
+    </body>
+    <body name="lab_service_cabinet" pos="-3.20 -1.05 1.08">
+      <geom type="box" size=".12 .52 .62" material="lab_panel"/>
+      <geom type="box" pos=".122 0 0" size=".002 .002 .57" material="lab_steel"/>
+      <geom type="box" pos=".125 -.08 0" size=".003 .008 .07" material="lab_steel"/>
+      <geom type="box" pos=".125 .08 0" size=".003 .008 .07" material="lab_steel"/>
+      <geom type="box" pos=".126 -.26 .35" size=".002 .10 .03" rgba=".17 .21 .25 1"/>
+    </body>
+    <geom name="wall_skirting" type="box" pos="3.50 0 .075" size=".02 2.95 .075" material="lab_steel"/>
+    <geom name="side_skirting" type="box" pos=".3 2.80 .075" size="3.2 .02 .075" material="lab_steel"/>
+    <!-- Metered floor joints and a 50 mm aisle boundary, not a checker texture. -->
+    <geom type="box" pos="1 0 .0005" size=".001 2.7 .0005" rgba=".29 .32 .35 1" contype="0" conaffinity="0"/>
+    <geom type="box" pos="2 0 .0005" size=".001 2.7 .0005" rgba=".29 .32 .35 1" contype="0" conaffinity="0"/>
+    <geom type="box" pos=".4 -1.25 .001" size="2.8 .025 .001" rgba=".73 .62 .26 1" contype="0" conaffinity="0"/>
+    <!-- Inspection bench: 1400 x 700 mm worktop, 40 mm frame members. -->
+    <body name="mobile_inspection_bench" pos="2.55 1.1 0">
+      <geom type="box" pos="0 0 .80" size=".35 .70 .025" material="lab_panel"/>
+      <geom type="box" pos="-.29 -.64 .39" size=".02 .02 .39" material="lab_aluminium"/>
+      <geom type="box" pos=".29 -.64 .39" size=".02 .02 .39" material="lab_aluminium"/>
+      <geom type="box" pos="-.29 .64 .39" size=".02 .02 .39" material="lab_aluminium"/>
+      <geom type="box" pos=".29 .64 .39" size=".02 .02 .39" material="lab_aluminium"/>
+      <geom type="box" pos="-.29 0 .64" size=".02 .66 .02" material="lab_aluminium"/>
+      <geom type="box" pos=".29 0 .64" size=".02 .66 .02" material="lab_aluminium"/>
+      <geom type="box" pos="0 -.64 .64" size=".29 .02 .02" material="lab_aluminium"/>
+      <geom type="box" pos="0 .64 .64" size=".29 .02 .02" material="lab_aluminium"/>
+      <geom name="mobile_gauge" type="box" pos="-.05 -.35 .875" size=".10 .15 .05" material="lab_steel"/>
+      <geom type="cylinder" pos="-.05 .26 .89" size=".07 .065" material="lab_aluminium"/>
+      <geom type="cylinder" pos="-.05 .26 .956" size=".035 .001" rgba=".1 .12 .14 1"/>
+    </body>
+    <!-- Bolted storage rack, with open polymer totes and folded sheet shelves. -->
+    <body name="storage_rack" pos="2.9 -1.95 0">
+      <geom type="box" pos="-.29 -.49 .95" size=".025 .025 .95" material="lab_steel"/>
+      <geom type="box" pos=".29 -.49 .95" size=".025 .025 .95" material="lab_steel"/>
+      <geom type="box" pos="-.29 .49 .95" size=".025 .025 .95" material="lab_steel"/>
+      <geom type="box" pos=".29 .49 .95" size=".025 .025 .95" material="lab_steel"/>
+      <geom type="box" pos="0 0 .25" size=".31 .51 .012" material="lab_aluminium"/>
+      <geom type="box" pos="0 0 .85" size=".31 .51 .012" material="lab_aluminium"/>
+      <geom type="box" pos="0 0 1.45" size=".31 .51 .012" material="lab_aluminium"/>
+      <geom type="box" pos="0 0 1.91" size=".31 .51 .012" material="lab_aluminium"/>
+      <geom type="capsule" fromto=".29 -.49 .25 .29 .49 1.91" size=".009" material="lab_steel"/>
+      <geom type="capsule" fromto=".29 .49 .25 .29 -.49 1.91" size=".009" material="lab_steel"/>
+      <body name="lower_tote" pos="-.02 0 .28">
+        <geom type="box" pos="0 0 .008" size=".235 .40 .008" material="lab_bin"/>
+        <geom type="box" pos="-.227 0 .13" size=".008 .40 .13" material="lab_bin"/>
+        <geom type="box" pos=".227 0 .13" size=".008 .40 .13" material="lab_bin"/>
+        <geom type="box" pos="0 -.392 .13" size=".22 .008 .13" material="lab_bin"/>
+        <geom type="box" pos="0 .392 .13" size=".22 .008 .13" material="lab_bin"/>
+        <geom type="box" pos="-.236 0 .15" size=".001 .09 .035" rgba=".83 .84 .81 1"/>
+      </body>
+      <body name="upper_tote" pos="-.02 0 .88">
+        <geom type="box" pos="0 0 .008" size=".235 .40 .008" material="lab_bin"/>
+        <geom type="box" pos="-.227 0 .13" size=".008 .40 .13" material="lab_bin"/>
+        <geom type="box" pos=".227 0 .13" size=".008 .40 .13" material="lab_bin"/>
+        <geom type="box" pos="0 -.392 .13" size=".22 .008 .13" material="lab_bin"/>
+        <geom type="box" pos="0 .392 .13" size=".22 .008 .13" material="lab_bin"/>
+        <geom type="box" pos="-.236 0 .15" size=".001 .09 .035" rgba=".83 .84 .81 1"/>
+      </body>
+    </body>
+    <body name="wall_calibration_panel" pos="3.505 .1 1.25">
+      <geom type="box" size=".012 .43 .33" material="lab_steel"/>
+      <geom type="box" pos="-.014 0 0" size=".002 .40 .30" rgba=".94 .94 .93 1"/>
+      <!-- 100 mm alignment squares, dimensions available to camera experiments. -->
+      <geom type="box" pos="-.017 -.25 .15" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 -.05 .15" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 .15 .15" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 -.15 .05" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 .05 .05" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 .25 .05" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 -.25 -.05" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 -.05 -.05" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 .15 -.05" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 -.15 -.15" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 .05 -.15" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+      <geom type="box" pos="-.017 .25 -.15" size=".001 .05 .05" rgba=".035 .04 .045 1"/>
+    </body>
+  </worldbody>
+</mujoco>

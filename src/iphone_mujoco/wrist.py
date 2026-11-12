@@ -357,7 +357,7 @@ class WristRGBDRecorder:
 
 
 def _place_demo_targets(model, data, camera_name):
-    """Put the original static demo objects beneath a downward-looking wrist."""
+    """Place complete inspection fixtures beneath a downward-looking wrist."""
     mujoco.mj_forward(model, data)
     camera = model.camera(camera_name).id
     eye = data.cam_xpos[camera].copy()
@@ -366,10 +366,14 @@ def _place_demo_targets(model, data, camera_name):
     if direction[2] >= -.1:
         return
     center = eye + direction * ((.05 - eye[2]) / direction[2])
-    for name, offset in (("reference_cube", [.08, 0., 0.]), ("reference_sphere", [-.09, -.03, 0.])):
+    for name, offset in (("gauge_block", [.08, 0., 0.]), ("inspection_boss", [-.09, -.03, 0.])):
         index = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, name)
         if index >= 0 and model.geom_bodyid[index] == 0:
-            model.geom_pos[index] = center + offset
+            delta = center + offset - model.geom_pos[index]
+            for geom_id in range(model.ngeom):
+                geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) or ""
+                if geom_name == name or geom_name.startswith(name + "_"):
+                    model.geom_pos[geom_id] += delta
     mujoco.mj_forward(model, data)
 
 

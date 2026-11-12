@@ -34,8 +34,9 @@ On Windows, create the environment with `py -m venv .venv` and install with
 | Linux | `.venv/bin/python -m iphone_mujoco phone-lab --device iphone-17-pro --region cn` |
 | Windows | `.venv\Scripts\python.exe -m iphone_mujoco phone-lab --device iphone-17-pro --region cn` |
 
-Move the phone with arrow keys and Q/E, rotate with J/L and I/K, press B to
-scan, and press P to save RGB-D and point clouds. On macOS you can also open
+Move the virtual camera with arrow keys and Q/E, rotate with J/L and I/K,
+press B to sweep the inspection stage, and P to save RGB-D and point clouds.
+On macOS you can also open
 `Open Phone Lab.command` after running `setup.command`.
 
 Rendering uses OpenGL. A headless Linux host needs a supported EGL driver or
@@ -80,12 +81,12 @@ for individual references.
 
 | Experiment | Camera placement | Output | Use |
 |---|---|---|---|
-| Tabletop | External camera on a stand | RGB-D, K, optical pose, point clouds | Detection, depth geometry, occlusion and calibration pipelines |
+| Inspection bench | External camera on a stand | RGB-D, K, optical pose, stage state and point clouds | Part inspection, depth geometry and calibration |
 | Robot wrist | Rigidly attached to an arm link | RGB-D with same-state joints and controls | Eye-in-hand observations, trajectory datasets, visual-servo input |
-| Mobile platform | Camera attached to a scripted base | RGB-D, base/camera pose and simulation time | RGB-D odometry input, multiview fusion and viewpoint coverage |
+| TIAGo mobile base | iPhone fixed to the robot | RGB-D, wheel state/odometry, base and camera poses | Visual odometry, encoder comparison and mapping datasets |
 | Custom MJCF | Camera attached to a named body | Same frame/episode API | Existing robot, room or task scenes |
 
-### Tabletop camera
+### Inspection camera
 
 ![Camera laboratory with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
@@ -98,24 +99,51 @@ python examples/scene_camera.py --scenario tabletop \
 iphone-mujoco inspect-episode recordings/tabletop/episode --json
 ```
 
-The sequence examples accept the same camera options, including a saved
-configuration with `--profile profiles/my-iphone.json`.
+The bench contains an actuated inspection stage, machined-part fixtures, depth
+gauges and a calibration board. The part moves through a position-controlled
+slide joint. The sequence examples accept the same camera options, including a
+saved configuration with `--profile profiles/my-iphone.json`.
 
-### Mobile camera
+### TIAGo mobile RGB-D
 
-![Scripted mobile platform and its RGB-D camera](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
+![PAL Robotics TIAGo with a mounted iPhone RGB-D camera](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
 [PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
 ```bash
-python examples/scene_camera.py --scenario mobile \
+iphone-mujoco models --fetch tiago
+mjpython -m iphone_mujoco capture-mobile --robot tiago \
   --device iphone-17-pro --region cn --zoom 1 \
-  --duration 6 --fps 10 --output recordings/mobile
+  --motion route --linear-speed .18 --angular-speed .35 \
+  --duration 8 --fps 15 --output recordings/mobile
 ```
 
-On macOS, replace `python` with `mjpython` for examples that open a viewer.
-The base follows a scripted path. The viewer shows RGB and depth beside the
-scene, and each frame records the base and camera poses.
+Use `python -m iphone_mujoco` outside macOS; add `--headless` for offline
+collection. The PAL Robotics TIAGo uses Menagerie meshes, joints and inertias.
+Wheel velocity servos drive the free base through floor contact. The route
+selects velocity commands; MuJoCo determines the motion. `--motion straight`
+and `--motion hold` provide simpler collection runs.
+
+Control it directly from Python:
+
+```python
+from iphone_mujoco import MujocoRGBDCamera, configure_camera
+from iphone_mujoco.mobile import DifferentialDriveController, load_mobile_scene
+
+config = configure_camera("iphone-17-pro", region="cn")
+model, data, robot = load_mobile_scene(configuration=config)
+drive = DifferentialDriveController(model, data, robot)
+drive.command(0.15, 0.2)  # forward m/s, yaw rad/s
+with MujocoRGBDCamera(model, config.calibration) as camera:
+    for _ in range(100):
+        drive.step(0.02)
+        frame = camera.render(data)
+        wheel_state = drive.state()
+```
+
+Record wheel encoder odometry separately from the simulator's base pose, then
+compare either against RGB-D odometry. The [camera guide](docs/phone-lab.md#mobile-data-and-control)
+describes the state fields, package API and coordinate frames.
 
 ### Wrist cameras
 
@@ -184,8 +212,9 @@ shows where each include belongs in an MJCF scene.
 
 ## Read recordings
 
-Wrist collection writes RGB PNG, UInt16 depth PNG, calibration, mounting
-extrinsics, `states.jsonl`, a point-cloud preview and an `episode/` directory.
+Collection writes RGB PNG, UInt16 depth PNG, calibration, `states.jsonl`, a
+point-cloud preview and an `episode/` directory. Wrist runs add mounting
+extrinsics and joint controls; mobile runs add wheel state and odometry.
 Read the episode to access images, calibration, poses and frame metadata.
 
 ```python

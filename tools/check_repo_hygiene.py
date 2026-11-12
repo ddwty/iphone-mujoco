@@ -164,8 +164,9 @@ def check_repository(root: Path, mode: str = "tracked") -> tuple[list[Finding], 
         else:
             findings.append(Finding(relative, "indexed source file is missing from the working tree"))
             continue
-        if len(content) > 2_000_000:
-            findings.append(Finding(relative, "source file exceeds 2 MB; review artifact placement"))
+        size_limit = 8_000_000 if Path(relative).suffix.lower() in BINARY_SUFFIXES and relative.startswith("docs/images/") else 2_000_000
+        if len(content) > size_limit:
+            findings.append(Finding(relative, "source file exceeds the authored source/media size limit; review artifact placement"))
         findings.extend(check_bytes(relative, content))
     return findings, paths
 

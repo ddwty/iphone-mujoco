@@ -16,6 +16,8 @@ legacy import aliases reference the same canonical classes.
 | `streams` | SDK adapters, local receipt state and independent freshness |
 | `virtual_device` | Existing SDK-schema output and depth quantization |
 | `robots`, `control` | Robot adapters, pinned models and bounded simulated targets |
+| `mobile` | Sourced TIAGo model, wheel velocity control and encoder odometry |
+| `experiments` | Reusable camera scenes, physics advancement and scene RGB-D recording |
 | `wrist` | Rigid mounting and same-state camera/robot capture |
 | `recording`, `inspection` | Versioned episodes, replay and offline validation |
 | `cli` | User workflows |
@@ -244,13 +246,65 @@ actuator control values. Panda uses its upstream
 See [the custom robot example](../examples/custom_robot.py) for Python loading.
 Keep model/data and controller stepping on one simulation thread.
 
+## Mobile simulation and scene experiments
+
+`mobile.load_mobile_scene()` loads the pinned PAL Robotics TIAGo model and
+attaches the iPhone module to the robot. `MobileRobotSpec` records the source,
+base, wheel joints and actuator mapping. The wrapper preserves vendor meshes,
+joints and inertias, uses the upstream wheel velocity servos and initializes a valid free
+base and upper-body home state. The arm remains at its initial targets during
+base-control experiments.
+Drive geometry follows PAL's PMB2 controller configuration; its source URL is
+retained in `MobileRobotSpec.metadata["drive_parameters_source"]`.
+
+`DifferentialDriveController.command(v, w)` converts a bounded forward speed
+and yaw rate into wheel targets. `step(dt)` advances MuJoCo and integrates
+wheel odometry from the simulated wheel joints. The base moves through contact
+forces. Runtime trajectories do not write free-base poses or use mocap motion.
+The route CLI selects a sequence of wheel commands rather than setting a base
+trajectory directly.
+
+The 0.5 s settling interval advances `data.time`; collection schedules use an
+explicit starting epoch. Wheel odometry starts at zero when the controller is
+created at the settled pose. Velocity limits clamp requested commands and
+acceleration limits determine the applied twist.
+
+Mobile samples retain wheel angles, velocities, targets, command twist, encoder
+odometry and the simulator's `world_from_base`. Keep odometry separate from
+ground truth. `qpos`, `qvel` and `ctrl` retain MuJoCo's native layout, including
+the free-joint position and quaternion; use model addresses to interpret them.
+RGB, optical pose and state are sampled without an intervening physics step.
+
+`experiments.load_camera_scene()` assembles inspection, mobile or custom MJCF
+scenes. `advance_scene()` advances the inspection position servo or an explicitly
+supplied `controller=drive` through physics. The inspection stage uses `inspection_slide`
+with a 160 mm stroke. Custom scenes preserve their source joints, assets and
+controls. `SceneRGBDRecorder(model, data, calibration, directory)` writes sensor
+frames and scene samples to the existing episode format.
+`capture(extra_state=drive.state())` combines controller state with the current
+qpos/qvel/ctrl and optical pose. It does not step physics or issue commands.
+The example entry points delegate to these
+package APIs, so applications can use the same scene/recorder code directly.
+
+| Scene | Motion | Intended data |
+|---|---|---|
+| `tabletop` | Servo-driven inspection slide; fixed camera | Part pose, stage joint state, RGB-D and calibration |
+| `mobile` | Differential-drive wheel servos and free-base contact dynamics | Wheel/visual odometry, base/camera poses and multiview RGB-D |
+| `custom` | Source MJCF dynamics and supplied controls | Named-body camera attachment and scene state |
+
+The mobile environment provides shelving, calibration markers and inspection
+bins. Its route is a data-collection command sequence; autonomous navigation
+and collision avoidance are supplied by the caller.
+
 ## Models, rigs and scope
 
 Public robot experiments use the seven-axis Franka Emika Panda with parallel
-gripper and the six-axis Universal Robots UR5e with bare flange. Both use MJCF
-and mesh assets maintained in Google DeepMind's MuJoCo Menagerie, pinned to
-commit `cda5236f98383f6fbaa4820c6b18dba892cd087f`, with file hash checks and
-original licenses. Use `IPHONE_MUJOCO_MODEL_CACHE` for a shared
+gripper, the six-axis Universal Robots UR5e with bare flange and the PAL
+Robotics TIAGo mobile manipulator. All use MJCF and mesh assets maintained in
+Google DeepMind's MuJoCo Menagerie. Panda and UR5e are pinned to
+`cda5236f98383f6fbaa4820c6b18dba892cd087f`; TIAGo is pinned to
+`370c43965323c0944b433b202aac5058b5f907a9`. Source manifests record file checks
+and each download retains its upstream license. Use `IPHONE_MUJOCO_MODEL_CACHE` for a shared
 local cache; legacy `ASMAGIC_MUJOCO_MODEL_CACHE` and previous caches remain
 compatible. Caches are excluded from source and release distributions.
 
@@ -272,6 +326,7 @@ bundled assets change:
 ```bash
 python -m pytest tests/test_devices.py tests/test_configuration.py -q
 python -m pytest tests/test_wrist.py tests/test_phone_lab.py -q
+python -m pytest tests/test_mobile.py tests/test_experiments.py -q
 python -m build
 python tools/check_repo_hygiene.py --mode source
 ```
@@ -279,7 +334,9 @@ python tools/check_repo_hygiene.py --mode source
 The device/configuration tests check catalog consistency, lens identity,
 equivalent-focal projection, pixel-center resizing and source/clock retention.
 Wrist tests check fixed phone placement across lens changes, mount geometry,
-payload opt-in and same-state camera/robot samples. OpenGL rendering tests opt
+payload opt-in and same-state camera/robot samples. Mobile checks cover valid
+initialization, straight/arc/rotation wheel commands, contacts and odometry;
+scene checks cover the actuated stage and same-state recording. OpenGL rendering tests opt
 in with `IPHONE_MUJOCO_TEST_RENDER=1`. Wheel construction and these software
 checks do not establish physical camera accuracy or phone/network behavior.
 

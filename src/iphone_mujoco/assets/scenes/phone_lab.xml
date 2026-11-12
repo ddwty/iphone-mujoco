@@ -1,57 +1,214 @@
-<!-- Stand-alone iPhone MuJoCo phone lab. All dimensions are meters.
-     Camera K is SYNTHETIC: fx=fy=544, 640x480. Phone and lens mount are
-     APPROXIMATE visual geometry, without measured mass/inertia or collision.
-     Checker squares are 35 mm; ruler ticks are 100 mm apart. -->
-<mujoco model="iPhone camera laboratory">
+<!-- Optical inspection workbench. Dimensions in meters. Table Z=.755; checker squares=.035; ruler major ticks=.100. Default K is synthetic; phone geometry follows the iPhone 17 Pro dimensional drawing. -->
+<mujoco model="iPhone optical inspection workbench">
   <compiler angle="radian" />
-  <option timestep="0.002" gravity="0 0 -9.81" />
+  <option timestep=".002" gravity="0 0 -9.81" />
   <visual>
     <global offwidth="640" offheight="480" azimuth="135" elevation="-23" />
-    <quality shadowsize="2048" />
-    <map znear="0.005" zfar="12" />
-    <headlight ambient=".35 .35 .35" diffuse=".65 .65 .65" specular=".15 .15 .15" />
+    <quality shadowsize="4096" offsamples="4" />
+    <map znear=".005" zfar="12" fogstart="5" fogend="12" />
+    <headlight ambient=".24 .25 .27" diffuse=".36 .36 .36" specular=".15 .15 .15" />
   </visual>
-  <statistic center="0 -.14 .76" extent="1.3" />
+  <statistic center="0 -.20 .64" extent="1.45" />
   <asset>
-    <texture name="floor_texture" type="2d" builtin="checker" width="128" height="128" rgb1=".13 .16 .20" rgb2=".18 .21 .25" />
-    <material name="floor_material" texture="floor_texture" texrepeat="6 6" reflectance=".05" />
-    <material name="table_material" rgba=".76 .79 .79 1" specular=".25" shininess=".2" />
-    <material name="stand_material" rgba=".20 .23 .28 1" specular=".45" shininess=".5" />
-    <material name="blue_material" rgba=".10 .42 .89 1" specular=".55" shininess=".5" />
+    <texture name="studio_background" type="skybox" builtin="gradient" rgb1=".29 .31 .34" rgb2=".11 .12 .14" width="128" height="768" />
+    <material name="floor_material" rgba=".28 .30 .33 1" specular=".05" shininess=".08" />
+    <material name="table_material" rgba=".53 .56 .59 1" specular=".35" shininess=".28" />
+    <material name="extrusion_material" rgba=".58 .61 .64 1" specular=".65" shininess=".45" />
+    <material name="machined_material" rgba=".66 .69 .72 1" specular=".65" shininess=".62" />
+    <material name="steel_material" rgba=".38 .41 .44 1" specular=".72" shininess=".60" />
+    <material name="black_anodized" rgba=".095 .11 .13 1" specular=".38" shininess=".32" />
+    <material name="rubber_material" rgba=".035 .042 .05 1" specular=".05" shininess=".12" />
+    <material name="ceramic_material" rgba=".76 .77 .73 1" specular=".15" shininess=".25" />
+    <material name="slot_material" rgba=".14 .16 .18 1" specular=".12" shininess=".15" />
+    <mesh name="iphone_shell_mesh" vertex="-0.035925 0.055575 -0.004375 -0.035885 0.061105 -0.004375 -0.035005 0.066545 -0.004375 -0.032125 0.071205 -0.004375 -0.027465 0.074085 -0.004375 -0.022025 0.074965 -0.004375 -0.016495 0.075005 -0.004375 0.016495 0.075005 -0.004375 0.022025 0.074965 -0.004375 0.027465 0.074085 -0.004375 0.032125 0.071205 -0.004375 0.035005 0.066545 -0.004375 0.035885 0.061105 -0.004375 0.035925 0.055575 -0.004375 0.035925 -0.055575 -0.004375 0.035885 -0.061105 -0.004375 0.035005 -0.066545 -0.004375 0.032125 -0.071205 -0.004375 0.027465 -0.074085 -0.004375 0.022025 -0.074965 -0.004375 0.016495 -0.075005 -0.004375 -0.016495 -0.075005 -0.004375 -0.022025 -0.074965 -0.004375 -0.027465 -0.074085 -0.004375 -0.032125 -0.071205 -0.004375 -0.035005 -0.066545 -0.004375 -0.035885 -0.061105 -0.004375 -0.035925 -0.055575 -0.004375 -0.035925 0.055575 0.004375 -0.035885 0.061105 0.004375 -0.035005 0.066545 0.004375 -0.032125 0.071205 0.004375 -0.027465 0.074085 0.004375 -0.022025 0.074965 0.004375 -0.016495 0.075005 0.004375 0.016495 0.075005 0.004375 0.022025 0.074965 0.004375 0.027465 0.074085 0.004375 0.032125 0.071205 0.004375 0.035005 0.066545 0.004375 0.035885 0.061105 0.004375 0.035925 0.055575 0.004375 0.035925 -0.055575 0.004375 0.035885 -0.061105 0.004375 0.035005 -0.066545 0.004375 0.032125 -0.071205 0.004375 0.027465 -0.074085 0.004375 0.022025 -0.074965 0.004375 0.016495 -0.075005 0.004375 -0.016495 -0.075005 0.004375 -0.022025 -0.074965 0.004375 -0.027465 -0.074085 0.004375 -0.032125 -0.071205 0.004375 -0.035005 -0.066545 0.004375 -0.035885 -0.061105 0.004375 -0.035925 -0.055575 0.004375" />
+    <mesh name="iphone_screen_mesh" vertex="-0.033285 0.0536188904073 -5e-05 -0.0332479394572 0.0589542473835 -5e-05 -0.0324326075157 0.0642027721485 -5e-05 -0.0297642484342 0.0686987510833 -5e-05 -0.0254466951983 0.0714773818412 -5e-05 -0.0204064613779 0.0723264079061 -5e-05 -0.0152828413361 0.072365 -5e-05 0.0152828413361 0.072365 -5e-05 0.0204064613779 0.0723264079061 -5e-05 0.0254466951983 0.0714773818412 -5e-05 0.0297642484342 0.0686987510833 -5e-05 0.0324326075157 0.0642027721485 -5e-05 0.0332479394572 0.0589542473835 -5e-05 0.033285 0.0536188904073 -5e-05 0.033285 -0.0536188904073 -5e-05 0.0332479394572 -0.0589542473835 -5e-05 0.0324326075157 -0.0642027721485 -5e-05 0.0297642484342 -0.0686987510833 -5e-05 0.0254466951983 -0.0714773818412 -5e-05 0.0204064613779 -0.0723264079061 -5e-05 0.0152828413361 -0.072365 -5e-05 -0.0152828413361 -0.072365 -5e-05 -0.0204064613779 -0.0723264079061 -5e-05 -0.0254466951983 -0.0714773818412 -5e-05 -0.0297642484342 -0.0686987510833 -5e-05 -0.0324326075157 -0.0642027721485 -5e-05 -0.0332479394572 -0.0589542473835 -5e-05 -0.033285 -0.0536188904073 -5e-05 -0.033285 0.0536188904073 5e-05 -0.0332479394572 0.0589542473835 5e-05 -0.0324326075157 0.0642027721485 5e-05 -0.0297642484342 0.0686987510833 5e-05 -0.0254466951983 0.0714773818412 5e-05 -0.0204064613779 0.0723264079061 5e-05 -0.0152828413361 0.072365 5e-05 0.0152828413361 0.072365 5e-05 0.0204064613779 0.0723264079061 5e-05 0.0254466951983 0.0714773818412 5e-05 0.0297642484342 0.0686987510833 5e-05 0.0324326075157 0.0642027721485 5e-05 0.0332479394572 0.0589542473835 5e-05 0.033285 0.0536188904073 5e-05 0.033285 -0.0536188904073 5e-05 0.0332479394572 -0.0589542473835 5e-05 0.0324326075157 -0.0642027721485 5e-05 0.0297642484342 -0.0686987510833 5e-05 0.0254466951983 -0.0714773818412 5e-05 0.0204064613779 -0.0723264079061 5e-05 0.0152828413361 -0.072365 5e-05 -0.0152828413361 -0.072365 5e-05 -0.0204064613779 -0.0723264079061 5e-05 -0.0254466951983 -0.0714773818412 5e-05 -0.0297642484342 -0.0686987510833 5e-05 -0.0324326075157 -0.0642027721485 5e-05 -0.0332479394572 -0.0589542473835 5e-05 -0.033285 -0.0536188904073 5e-05" />
+    <mesh name="iphone_plateau_mesh" vertex="-0.035925 0.00456 -0.001275 -0.035885 0.01009 -0.001275 -0.035005 0.01553 -0.001275 -0.032125 0.02019 -0.001275 -0.027465 0.02307 -0.001275 -0.022025 0.02395 -0.001275 -0.016495 0.02399 -0.001275 0.016495 0.02399 -0.001275 0.022025 0.02395 -0.001275 0.027465 0.02307 -0.001275 0.032125 0.02019 -0.001275 0.035005 0.01553 -0.001275 0.035885 0.01009 -0.001275 0.035925 0.00456 -0.001275 0.035925 -0.01199 -0.001275 0.0358223383365 -0.0135563143066 -0.001275 0.0355161099155 -0.0150958285412 -0.001275 0.0350115543901 -0.0165822011884 -0.001275 0.0343173048454 -0.01799 -0.001275 0.0334452400835 -0.0192951371481 -0.001275 0.0324102813742 -0.0204752813742 -0.001275 0.0312301371481 -0.0215102400835 -0.001275 0.029925 -0.0223823048454 -0.001275 0.0285172011884 -0.0230765543901 -0.001275 0.0270308285412 -0.0235811099155 -0.001275 0.0254913143066 -0.0238873383365 -0.001275 0.023925 -0.02399 -0.001275 -0.023925 -0.02399 -0.001275 -0.0254913143066 -0.0238873383365 -0.001275 -0.0270308285412 -0.0235811099155 -0.001275 -0.0285172011884 -0.0230765543901 -0.001275 -0.029925 -0.0223823048454 -0.001275 -0.0312301371481 -0.0215102400835 -0.001275 -0.0324102813742 -0.0204752813742 -0.001275 -0.0334452400835 -0.0192951371481 -0.001275 -0.0343173048454 -0.01799 -0.001275 -0.0350115543901 -0.0165822011884 -0.001275 -0.0355161099155 -0.0150958285412 -0.001275 -0.0358223383365 -0.0135563143066 -0.001275 -0.035925 -0.01199 -0.001275 -0.035925 0.00456 0.001275 -0.035885 0.01009 0.001275 -0.035005 0.01553 0.001275 -0.032125 0.02019 0.001275 -0.027465 0.02307 0.001275 -0.022025 0.02395 0.001275 -0.016495 0.02399 0.001275 0.016495 0.02399 0.001275 0.022025 0.02395 0.001275 0.027465 0.02307 0.001275 0.032125 0.02019 0.001275 0.035005 0.01553 0.001275 0.035885 0.01009 0.001275 0.035925 0.00456 0.001275 0.035925 -0.01199 0.001275 0.0358223383365 -0.0135563143066 0.001275 0.0355161099155 -0.0150958285412 0.001275 0.0350115543901 -0.0165822011884 0.001275 0.0343173048454 -0.01799 0.001275 0.0334452400835 -0.0192951371481 0.001275 0.0324102813742 -0.0204752813742 0.001275 0.0312301371481 -0.0215102400835 0.001275 0.029925 -0.0223823048454 0.001275 0.0285172011884 -0.0230765543901 0.001275 0.0270308285412 -0.0235811099155 0.001275 0.0254913143066 -0.0238873383365 0.001275 0.023925 -0.02399 0.001275 -0.023925 -0.02399 0.001275 -0.0254913143066 -0.0238873383365 0.001275 -0.0270308285412 -0.0235811099155 0.001275 -0.0285172011884 -0.0230765543901 0.001275 -0.029925 -0.0223823048454 0.001275 -0.0312301371481 -0.0215102400835 0.001275 -0.0324102813742 -0.0204752813742 0.001275 -0.0334452400835 -0.0192951371481 0.001275 -0.0343173048454 -0.01799 0.001275 -0.0350115543901 -0.0165822011884 0.001275 -0.0355161099155 -0.0150958285412 0.001275 -0.0358223383365 -0.0135563143066 0.001275 -0.035925 -0.01199 0.001275" />
   </asset>
   <worldbody>
-    <light name="key_light" pos="-.5 -1.2 2.8" dir=".2 .3 -1" diffuse=".75 .75 .75" castshadow="true" />
-    <light name="fill_light" pos="1.5 .5 2" dir="-.4 -.2 -1" diffuse=".35 .38 .42" castshadow="false" />
-    <camera name="lab_overview" pos="1.35 -1.65 1.55" xyaxes=".773 .634 0 -.223 .272 .936" />
-    <geom name="floor" type="plane" size="3 3 .1" material="floor_material" />
+    <light name="key_light" pos="-.7 -1.1 2.9" dir=".25 .35 -1" diffuse=".70 .69 .67" specular=".45 .44 .43" castshadow="true" bulbradius=".35" />
+    <light name="fill_light" pos="1.8 -.3 2.2" dir="-.55 .1 -1" diffuse=".40 .43 .47" castshadow="false" />
+    <light name="rim_light" pos="-.3 1.5 2.6" dir=".1 -.45 -1" diffuse=".42 .44 .47" castshadow="false" />
+    <camera name="lab_overview" pos="1.35 -1.75 1.55" xyaxes=".792 .611 0 -.197 .256 .946" />
+    <geom name="floor" type="plane" size="4 4 .1" material="floor_material" />
     <body name="laboratory_table">
-      <geom name="tabletop" type="box" pos="0 0 .73" size=".55 .40 .025" material="table_material" />
-      <geom name="front_left_leg" type="box" pos="-.47 -.32 .35" size=".026 .026 .35" rgba=".23 .26 .29 1" />
-      <geom name="front_right_leg" type="box" pos=".47 -.32 .35" size=".026 .026 .35" rgba=".23 .26 .29 1" />
-      <geom name="back_left_leg" type="box" pos="-.47 .32 .35" size=".026 .026 .35" rgba=".23 .26 .29 1" />
-      <geom name="back_right_leg" type="box" pos=".47 .32 .35" size=".026 .026 .35" rgba=".23 .26 .29 1" />
+      <geom name="tabletop" type="box" pos="0 0 .730" size=".55 .40 .025" material="table_material" />
+      <geom name="front_left_leg" type="box" pos="-0.49 -0.34 .365" size=".020 .020 .320" material="extrusion_material" />
+      <geom name="front_left_vertical_slot_a" type="box" pos="-0.5102 -0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="front_left_vertical_slot_b" type="box" pos="-0.4698 -0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="front_left_levelling_stem" type="cylinder" pos="-0.49 -0.34 .033" size=".008 .015" material="steel_material" />
+      <geom name="front_left_foot" type="cylinder" pos="-0.49 -0.34 .012" size=".033 .012" material="rubber_material" />
+      <geom name="back_left_leg" type="box" pos="-0.49 0.34 .365" size=".020 .020 .320" material="extrusion_material" />
+      <geom name="back_left_vertical_slot_a" type="box" pos="-0.5102 0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="back_left_vertical_slot_b" type="box" pos="-0.4698 0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="back_left_levelling_stem" type="cylinder" pos="-0.49 0.34 .033" size=".008 .015" material="steel_material" />
+      <geom name="back_left_foot" type="cylinder" pos="-0.49 0.34 .012" size=".033 .012" material="rubber_material" />
+      <geom name="front_right_leg" type="box" pos="0.49 -0.34 .365" size=".020 .020 .320" material="extrusion_material" />
+      <geom name="front_right_vertical_slot_a" type="box" pos="0.4698 -0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="front_right_vertical_slot_b" type="box" pos="0.5102 -0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="front_right_levelling_stem" type="cylinder" pos="0.49 -0.34 .033" size=".008 .015" material="steel_material" />
+      <geom name="front_right_foot" type="cylinder" pos="0.49 -0.34 .012" size=".033 .012" material="rubber_material" />
+      <geom name="back_right_leg" type="box" pos="0.49 0.34 .365" size=".020 .020 .320" material="extrusion_material" />
+      <geom name="back_right_vertical_slot_a" type="box" pos="0.4698 0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="back_right_vertical_slot_b" type="box" pos="0.5102 0.34 .365" size=".0004 .004 .305" material="slot_material" />
+      <geom name="back_right_levelling_stem" type="cylinder" pos="0.49 0.34 .033" size=".008 .015" material="steel_material" />
+      <geom name="back_right_foot" type="cylinder" pos="0.49 0.34 .012" size=".033 .012" material="rubber_material" />
+      <geom name="front_upper_crossmember" type="box" pos="0 -0.34 0.685" size=".49 .020 .020" material="extrusion_material" />
+      <geom name="front_upper_slot" type="box" pos="0 -0.3602 0.685" size=".445 .0004 .004" material="slot_material" />
+      <geom name="front_lower_crossmember" type="box" pos="0 -0.34 0.16" size=".49 .020 .020" material="extrusion_material" />
+      <geom name="front_lower_slot" type="box" pos="0 -0.3602 0.16" size=".445 .0004 .004" material="slot_material" />
+      <geom name="rear_upper_crossmember" type="box" pos="0 0.34 0.685" size=".49 .020 .020" material="extrusion_material" />
+      <geom name="rear_upper_slot" type="box" pos="0 0.31980000000000003 0.685" size=".445 .0004 .004" material="slot_material" />
+      <geom name="rear_lower_crossmember" type="box" pos="0 0.34 0.16" size=".49 .020 .020" material="extrusion_material" />
+      <geom name="rear_lower_slot" type="box" pos="0 0.31980000000000003 0.16" size=".445 .0004 .004" material="slot_material" />
+      <geom name="left_top_crossmember" type="box" pos="-0.49 0 .685" size=".020 .34 .020" material="extrusion_material" />
+      <geom name="left_front_corner_plate" type="box" pos="-0.49 -0.36200000000000004 .664" size=".036 .003 .036" material="black_anodized" />
+      <geom name="left_front_bolt_-0.023" type="cylinder" pos="-0.513 -0.36600000000000005 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="left_front_bolt_0.023" type="cylinder" pos="-0.46699999999999997 -0.36600000000000005 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="left_rear_corner_plate" type="box" pos="-0.49 0.318 .664" size=".036 .003 .036" material="black_anodized" />
+      <geom name="left_rear_bolt_-0.023" type="cylinder" pos="-0.513 0.314 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="left_rear_bolt_0.023" type="cylinder" pos="-0.46699999999999997 0.314 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="right_top_crossmember" type="box" pos="0.49 0 .685" size=".020 .34 .020" material="extrusion_material" />
+      <geom name="right_front_corner_plate" type="box" pos="0.49 -0.36200000000000004 .664" size=".036 .003 .036" material="black_anodized" />
+      <geom name="right_front_bolt_-0.023" type="cylinder" pos="0.46699999999999997 -0.36600000000000005 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="right_front_bolt_0.023" type="cylinder" pos="0.513 -0.36600000000000005 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="right_rear_corner_plate" type="box" pos="0.49 0.318 .664" size=".036 .003 .036" material="black_anodized" />
+      <geom name="right_rear_bolt_-0.023" type="cylinder" pos="0.46699999999999997 0.314 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="right_rear_bolt_0.023" type="cylinder" pos="0.513 0.314 .664" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="front_edge_band" type="box" pos="0 -0.4005 .730" size=".55 .001 .024" material="black_anodized" />
+      <geom name="rear_edge_band" type="box" pos="0 0.4005 .730" size=".55 .001 .024" material="black_anodized" />
     </body>
-    <body name="camera_stand">
-      <geom name="stand_base" type="cylinder" pos="-.02 -.82 .025" size=".12 .025" material="stand_material" contype="0" conaffinity="0" />
-      <geom name="stand_column" type="cylinder" fromto="-.02 -.82 .05 -.02 -.82 .94" size=".012" material="stand_material" contype="0" conaffinity="0" />
-      <geom name="stand_clamp" type="box" pos="-.02 -.835 .956" size=".043 .012 .009" material="stand_material" contype="0" conaffinity="0" />
+    <body name="fixture_plate">
+      <geom name="fixture_plate_surface" type="box" pos=".205 .07 .759" size=".245 .235 .004" material="black_anodized" />
+      <geom name="fixture_hole_0_0" type="cylinder" pos="0.00500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_1" type="cylinder" pos="0.05500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_2" type="cylinder" pos="0.10500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_3" type="cylinder" pos="0.15500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_4" type="cylinder" pos="0.20500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_5" type="cylinder" pos="0.25500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_6" type="cylinder" pos="0.30500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_7" type="cylinder" pos="0.35500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_0_8" type="cylinder" pos="0.40500 -0.13000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_0" type="cylinder" pos="0.00500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_1" type="cylinder" pos="0.05500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_2" type="cylinder" pos="0.10500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_3" type="cylinder" pos="0.15500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_4" type="cylinder" pos="0.20500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_5" type="cylinder" pos="0.25500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_6" type="cylinder" pos="0.30500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_7" type="cylinder" pos="0.35500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_1_8" type="cylinder" pos="0.40500 -0.08000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_0" type="cylinder" pos="0.00500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_1" type="cylinder" pos="0.05500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_2" type="cylinder" pos="0.10500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_3" type="cylinder" pos="0.15500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_4" type="cylinder" pos="0.20500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_5" type="cylinder" pos="0.25500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_6" type="cylinder" pos="0.30500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_7" type="cylinder" pos="0.35500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_2_8" type="cylinder" pos="0.40500 -0.03000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_0" type="cylinder" pos="0.00500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_1" type="cylinder" pos="0.05500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_2" type="cylinder" pos="0.10500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_3" type="cylinder" pos="0.15500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_4" type="cylinder" pos="0.20500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_5" type="cylinder" pos="0.25500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_6" type="cylinder" pos="0.30500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_7" type="cylinder" pos="0.35500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_3_8" type="cylinder" pos="0.40500 0.02000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_0" type="cylinder" pos="0.00500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_1" type="cylinder" pos="0.05500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_2" type="cylinder" pos="0.10500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_3" type="cylinder" pos="0.15500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_4" type="cylinder" pos="0.20500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_5" type="cylinder" pos="0.25500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_6" type="cylinder" pos="0.30500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_7" type="cylinder" pos="0.35500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_4_8" type="cylinder" pos="0.40500 0.07000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_0" type="cylinder" pos="0.00500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_1" type="cylinder" pos="0.05500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_2" type="cylinder" pos="0.10500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_3" type="cylinder" pos="0.15500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_4" type="cylinder" pos="0.20500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_5" type="cylinder" pos="0.25500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_6" type="cylinder" pos="0.30500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_7" type="cylinder" pos="0.35500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_5_8" type="cylinder" pos="0.40500 0.12000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_0" type="cylinder" pos="0.00500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_1" type="cylinder" pos="0.05500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_2" type="cylinder" pos="0.10500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_3" type="cylinder" pos="0.15500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_4" type="cylinder" pos="0.20500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_5" type="cylinder" pos="0.25500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_6" type="cylinder" pos="0.30500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_7" type="cylinder" pos="0.35500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_6_8" type="cylinder" pos="0.40500 0.17000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_0" type="cylinder" pos="0.00500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_1" type="cylinder" pos="0.05500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_2" type="cylinder" pos="0.10500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_3" type="cylinder" pos="0.15500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_4" type="cylinder" pos="0.20500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_5" type="cylinder" pos="0.25500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_6" type="cylinder" pos="0.30500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_7" type="cylinder" pos="0.35500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_7_8" type="cylinder" pos="0.40500 0.22000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_0" type="cylinder" pos="0.00500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_1" type="cylinder" pos="0.05500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_2" type="cylinder" pos="0.10500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_3" type="cylinder" pos="0.15500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_4" type="cylinder" pos="0.20500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_5" type="cylinder" pos="0.25500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_6" type="cylinder" pos="0.30500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_7" type="cylinder" pos="0.35500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_hole_8_8" type="cylinder" pos="0.40500 0.27000 .7632" size=".0028 .0002" material="slot_material" />
+      <geom name="fixture_socket_screw_0" type="cylinder" pos="0.0 -0.145 .764" size=".0045 .001" material="steel_material" />
+      <geom name="fixture_socket_recess_0" type="cylinder" pos="0.0 -0.145 .7651" size=".002 .00015" material="rubber_material" />
+      <geom name="fixture_socket_screw_1" type="cylinder" pos="0.41 -0.145 .764" size=".0045 .001" material="steel_material" />
+      <geom name="fixture_socket_recess_1" type="cylinder" pos="0.41 -0.145 .7651" size=".002 .00015" material="rubber_material" />
+      <geom name="fixture_socket_screw_2" type="cylinder" pos="0.0 0.285 .764" size=".0045 .001" material="steel_material" />
+      <geom name="fixture_socket_recess_2" type="cylinder" pos="0.0 0.285 .7651" size=".002 .00015" material="rubber_material" />
+      <geom name="fixture_socket_screw_3" type="cylinder" pos="0.41 0.285 .764" size=".0045 .001" material="steel_material" />
+      <geom name="fixture_socket_recess_3" type="cylinder" pos="0.41 0.285 .7651" size=".002 .00015" material="rubber_material" />
     </body>
-    <body name="red_cube" pos="-.095 -.12 .800">
-      <geom name="red_cube_surface" type="box" size=".045 .045 .045" rgba=".93 .22 .13 1" />
+    <body name="inspection_part" pos=".16 -.055 .825">
+      <geom name="inspection_part_base" type="cylinder" pos="0 0 -.024" size=".040 .018" material="machined_material" />
+      <geom name="inspection_part_body" type="cylinder" pos="0 0 .012" size=".029 .027" material="machined_material" />
+      <geom name="inspection_part_shoulder" type="cylinder" pos="0 0 .038" size=".027 .003" material="steel_material" />
+      <geom name="inspection_part_bore" type="cylinder" pos="0 0 .0412" size=".012 .0003" material="black_anodized" />
+      <geom name="inspection_part_machining_groove_0" type="cylinder" pos="0 0 -0.014" size="0.0403 .0006" material="steel_material" />
+      <geom name="inspection_part_machining_groove_1" type="cylinder" pos="0 0 -0.005" size="0.0403 .0006" material="steel_material" />
+      <geom name="inspection_part_machining_groove_2" type="cylinder" pos="0 0 0.022" size="0.0293 .0006" material="steel_material" />
+      <geom name="inspection_part_machining_groove_3" type="cylinder" pos="0 0 0.028" size="0.0293 .0006" material="steel_material" />
+      <inertial pos="0 0 -.0005" mass=".24" diaginertia=".00023 .00023 .00019" />
+      <joint name="inspection_slide" type="slide" axis="1 0 0" limited="true" range="-.08 .08" damping="4" armature=".01" />
+      <geom name="inspection_carriage" type="box" pos="0 0 -.048" size=".045 .035 .006" material="black_anodized" />
+      <geom name="inspection_carriage_bolt_0" type="cylinder" pos="-0.032 0 -.041" size=".003 .001" material="steel_material" />
+      <geom name="inspection_carriage_bolt_1" type="cylinder" pos="0.032 0 -.041" size=".003 .001" material="steel_material" />
     </body>
-    <body name="blue_sphere" pos=".16 -.055 .805">
-      <geom name="blue_sphere_surface" type="sphere" size=".05" material="blue_material" />
+    <body name="gauge_block" pos="-.095 -.12 .800">
+      <geom name="gauge_block_surface" type="box" size=".045 .045 .045" material="ceramic_material" />
+      <geom name="gauge_block_datum" type="box" pos="0 -.0452 .023" size=".025 .0002 .001" material="black_anodized" />
     </body>
-    <body name="green_cylinder" pos=".26 .17 .815">
-      <geom name="green_cylinder_surface" type="cylinder" size=".04 .06" rgba=".10 .67 .41 1" />
+    <body name="flange_fixture" pos=".33 .18 .763">
+      <geom name="flange_base" type="cylinder" pos="0 0 .008" size=".043 .008" material="steel_material" />
+      <geom name="flange_shaft" type="cylinder" pos="0 0 .038" size=".023 .030" material="machined_material" />
+      <geom name="flange_bore" type="cylinder" pos="0 0 .0682" size=".010 .0002" material="black_anodized" />
+      <geom name="flange_bolt_0" type="cylinder" pos="0.03 0 .0165" size=".003 .0005" material="black_anodized" />
+      <geom name="flange_bolt_1" type="cylinder" pos="-0.03 0 .0165" size=".003 .0005" material="black_anodized" />
+      <geom name="flange_bolt_2" type="cylinder" pos="0 0.03 .0165" size=".003 .0005" material="black_anodized" />
+      <geom name="flange_bolt_3" type="cylinder" pos="0 -0.03 .0165" size=".003 .0005" material="black_anodized" />
     </body>
     <body name="depth_steps">
-      <geom name="step_40mm" type="box" pos="-.39 .04 .775" size=".045 .045 .020" rgba=".91 .75 .24 1" />
-      <geom name="step_80mm" type="box" pos="-.29 .04 .795" size=".045 .045 .040" rgba=".94 .55 .17 1" />
-      <geom name="step_120mm" type="box" pos="-.19 .04 .815" size=".045 .045 .060" rgba=".74 .37 .58 1" />
+      <geom name="step_40mm" type="box" pos="-0.39 .04 0.775000" size=".045 .045 0.020000" material="machined_material" />
+      <geom name="step_40mm_datum" type="box" pos="-0.39 -.0052 0.787000" size=".027 .0002 .001" material="black_anodized" />
+      <geom name="step_80mm" type="box" pos="-0.29 .04 0.795000" size=".045 .045 0.040000" material="machined_material" />
+      <geom name="step_80mm_datum" type="box" pos="-0.29 -.0052 0.827000" size=".027 .0002 .001" material="black_anodized" />
+      <geom name="step_120mm" type="box" pos="-0.19 .04 0.815000" size=".045 .045 0.060000" material="machined_material" />
+      <geom name="step_120mm_datum" type="box" pos="-0.19 -.0052 0.867000" size=".027 .0002 .001" material="black_anodized" />
     </body>
-    <body name="foreground_occluder" pos=".045 .12 .835">
-      <geom name="occluder_surface" type="box" size=".018 .012 .080" rgba=".32 .36 .42 1" />
+    <body name="foreground_occluder" pos=".045 .12 .763">
+      <geom name="occluder_foot" type="box" pos="0 0 .004" size=".034 .025 .004" material="black_anodized" />
+      <geom name="occluder_surface" type="box" pos="0 .021 .066" size=".034 .004 .062" material="black_anodized" />
+      <geom name="occluder_bolt" type="cylinder" pos="0 -.008 .009" size=".004 .001" material="steel_material" />
     </body>
     <body name="checkerboard">
       <geom name="checkerboard_backing" type="box" pos=".015 .30 .94" size=".1575 .006 .105" rgba=".95 .95 .92 1" />
@@ -95,27 +252,200 @@
       <geom name="checker_4_5" type="box" pos="0.067500 .2935 1.010000" size=".0175 .0005 .0175" rgba=".96 .96 .94 1" />
       <geom name="checker_4_6" type="box" pos="0.102500 .2935 1.010000" size=".0175 .0005 .0175" rgba=".045 .055 .065 1" />
       <geom name="checker_4_7" type="box" pos="0.137500 .2935 1.010000" size=".0175 .0005 .0175" rgba=".96 .96 .94 1" />
+      <geom name="checker_frame_left" type="box" pos="-0.1575 .300 .940" size=".007 .009 .112" material="black_anodized" />
+      <geom name="checker_frame_right" type="box" pos="0.1875 .300 .940" size=".007 .009 .112" material="black_anodized" />
+      <geom name="checker_frame_bottom" type="box" pos=".015 .300 0.828" size=".180 .009 .007" material="black_anodized" />
+      <geom name="checker_frame_top" type="box" pos=".015 .300 1.052" size=".180 .009 .007" material="black_anodized" />
+      <geom name="checker_foot_left" type="box" pos="-0.125 .320 .761" size=".035 .045 .006" material="black_anodized" />
+      <geom name="checker_post_left" type="box" pos="-0.125 .317 .850" size=".008 .008 .083" material="extrusion_material" />
+      <geom name="checker_post_bolt_left" type="cylinder" pos="-0.125 .288 .842" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
+      <geom name="checker_foot_right" type="box" pos="0.155 .320 .761" size=".035 .045 .006" material="black_anodized" />
+      <geom name="checker_post_right" type="box" pos="0.155 .317 .850" size=".008 .008 .083" material="extrusion_material" />
+      <geom name="checker_post_bolt_right" type="cylinder" pos="0.155 .288 .842" size=".004 .002" quat=".70710678 .70710678 0 0" material="steel_material" />
     </body>
     <body name="ruler">
-      <geom name="ruler_base" type="box" pos="0 -.32 .757" size=".5 .014 .002" rgba=".92 .92 .85 1" />
-      <geom name="ruler_tick_0" type="box" pos="-0.500000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_1" type="box" pos="-0.400000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_2" type="box" pos="-0.300000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_3" type="box" pos="-0.200000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_4" type="box" pos="-0.100000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_5" type="box" pos="0.000000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_6" type="box" pos="0.100000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_7" type="box" pos="0.200000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_8" type="box" pos="0.300000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_9" type="box" pos="0.400000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
-      <geom name="ruler_tick_10" type="box" pos="0.500000 -.32 .7595" size=".001 .014 .0005" rgba=".12 .15 .18 1" />
+      <geom name="ruler_base" type="box" pos="0 -.32 .757" size=".5 .014 .002" material="machined_material" />
+      <geom name="ruler_tick_0" type="box" pos="-0.500000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_1" type="box" pos="-0.490000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_2" type="box" pos="-0.480000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_3" type="box" pos="-0.470000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_4" type="box" pos="-0.460000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_5" type="box" pos="-0.450000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_6" type="box" pos="-0.440000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_7" type="box" pos="-0.430000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_8" type="box" pos="-0.420000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_9" type="box" pos="-0.410000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_1" type="box" pos="-0.400000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_11" type="box" pos="-0.390000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_12" type="box" pos="-0.380000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_13" type="box" pos="-0.370000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_14" type="box" pos="-0.360000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_15" type="box" pos="-0.350000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_16" type="box" pos="-0.340000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_17" type="box" pos="-0.330000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_18" type="box" pos="-0.320000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_19" type="box" pos="-0.310000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_2" type="box" pos="-0.300000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_21" type="box" pos="-0.290000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_22" type="box" pos="-0.280000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_23" type="box" pos="-0.270000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_24" type="box" pos="-0.260000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_25" type="box" pos="-0.250000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_26" type="box" pos="-0.240000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_27" type="box" pos="-0.230000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_28" type="box" pos="-0.220000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_29" type="box" pos="-0.210000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_3" type="box" pos="-0.200000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_31" type="box" pos="-0.190000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_32" type="box" pos="-0.180000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_33" type="box" pos="-0.170000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_34" type="box" pos="-0.160000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_35" type="box" pos="-0.150000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_36" type="box" pos="-0.140000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_37" type="box" pos="-0.130000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_38" type="box" pos="-0.120000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_39" type="box" pos="-0.110000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_4" type="box" pos="-0.100000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_41" type="box" pos="-0.090000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_42" type="box" pos="-0.080000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_43" type="box" pos="-0.070000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_44" type="box" pos="-0.060000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_45" type="box" pos="-0.050000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_46" type="box" pos="-0.040000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_47" type="box" pos="-0.030000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_48" type="box" pos="-0.020000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_49" type="box" pos="-0.010000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_5" type="box" pos="0.000000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_51" type="box" pos="0.010000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_52" type="box" pos="0.020000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_53" type="box" pos="0.030000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_54" type="box" pos="0.040000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_55" type="box" pos="0.050000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_56" type="box" pos="0.060000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_57" type="box" pos="0.070000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_58" type="box" pos="0.080000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_59" type="box" pos="0.090000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_6" type="box" pos="0.100000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_61" type="box" pos="0.110000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_62" type="box" pos="0.120000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_63" type="box" pos="0.130000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_64" type="box" pos="0.140000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_65" type="box" pos="0.150000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_66" type="box" pos="0.160000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_67" type="box" pos="0.170000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_68" type="box" pos="0.180000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_69" type="box" pos="0.190000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_7" type="box" pos="0.200000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_71" type="box" pos="0.210000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_72" type="box" pos="0.220000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_73" type="box" pos="0.230000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_74" type="box" pos="0.240000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_75" type="box" pos="0.250000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_76" type="box" pos="0.260000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_77" type="box" pos="0.270000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_78" type="box" pos="0.280000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_79" type="box" pos="0.290000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_8" type="box" pos="0.300000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_81" type="box" pos="0.310000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_82" type="box" pos="0.320000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_83" type="box" pos="0.330000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_84" type="box" pos="0.340000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_85" type="box" pos="0.350000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_86" type="box" pos="0.360000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_87" type="box" pos="0.370000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_88" type="box" pos="0.380000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_89" type="box" pos="0.390000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_9" type="box" pos="0.400000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_91" type="box" pos="0.410000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_92" type="box" pos="0.420000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_93" type="box" pos="0.430000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_94" type="box" pos="0.440000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_half_tick_95" type="box" pos="0.450000 -0.316000 .7593" size=".00035 0.010000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_96" type="box" pos="0.460000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_97" type="box" pos="0.470000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_98" type="box" pos="0.480000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_minor_tick_99" type="box" pos="0.490000 -0.311000 .7593" size=".00035 0.005000 .0003" material="black_anodized" />
+      <geom name="ruler_tick_10" type="box" pos="0.500000 -0.320000 .7593" size=".00035 0.014000 .0003" material="black_anodized" />
     </body>
-    <body name="iphone" mocap="true" pos="-0.02 -0.81746256500261605 1.0007652681176245" quat="0.78820543801610921 0.61541220940263575 0 0">
-      <geom name="iphone_shell" type="box" size="0.038 0.075 0.004" rgba="0.12 0.13 0.15 1" density="0" contype="0" conaffinity="0" group="2" />
-      <geom name="iphone_screen" type="box" pos="0 0 0.0041" size="0.035 0.071 0.0002" rgba="0.025 0.04 0.065 1" density="0" contype="0" conaffinity="0" group="2" />
-      <geom name="iphone_lens" type="cylinder" pos="0.020 0.052 -0.0048" size="0.006 0.001" rgba="0.05 0.13 0.23 1" density="0" contype="0" conaffinity="0" group="2" />
-      <camera name="iphone_camera" mode="fixed" pos="0.020 0.052 -0.005" sensorsize="640 480" resolution="640 480" focalpixel="544 544" principalpixel="0 0" />
-      <site name="iphone_optical_center" pos="0.020 0.052 -0.005" size="0.003" rgba="0.1 0.8 1 0.4" group="3" />
+    <body name="reflectance_reference" pos=".399 .315 .885">
+      <geom name="reference_backing" type="box" size=".055 .005 .063" material="black_anodized" />
+      <geom name="reflectance_patch_0" type="box" pos="-0.026 -.0055 0.038000" size=".024 .0005 .017" rgba=".82 .82 .78 1" />
+      <geom name="reflectance_patch_1" type="box" pos="0.026 -.0055 0.038000" size=".024 .0005 .017" rgba=".48 .49 .48 1" />
+      <geom name="reflectance_patch_2" type="box" pos="-0.026 -.0055 0.000000" size=".024 .0005 .017" rgba=".10 .11 .12 1" />
+      <geom name="reflectance_patch_3" type="box" pos="0.026 -.0055 0.000000" size=".024 .0005 .017" rgba=".40 .16 .14 1" />
+      <geom name="reflectance_patch_4" type="box" pos="-0.026 -.0055 -0.038000" size=".024 .0005 .017" rgba=".15 .31 .24 1" />
+      <geom name="reflectance_patch_5" type="box" pos="0.026 -.0055 -0.038000" size=".024 .0005 .017" rgba=".13 .23 .39 1" />
+      <geom name="reference_post" type="box" pos="0 .009 -.065" size=".008 .008 .065" material="extrusion_material" />
+      <geom name="reference_foot" type="box" pos="0 .009 -.124" size=".048 .032 .006" material="black_anodized" />
+    </body>
+    <body name="inspection_stage" pos=".16 -.055 .763">
+      <geom name="inspection_stage_base" type="box" pos="0 0 .003" size=".16 .045 .003" material="black_anodized" />
+      <geom name="inspection_guide_rod_0" type="cylinder" fromto="-.143 -0.024 .012 .143 -0.024 .012" size=".004" material="machined_material" />
+      <geom name="inspection_guide_rod_1" type="cylinder" fromto="-.143 0.024 .012 .143 0.024 .012" size=".004" material="machined_material" />
+      <geom name="inspection_stage_end_0" type="box" pos="-0.151 0 .012" size=".009 .035 .009" material="steel_material" />
+      <geom name="inspection_stage_screw_0_0" type="cylinder" pos="-0.151 -0.033 .007" size=".003 .001" material="machined_material" />
+      <geom name="inspection_stage_screw_0_1" type="cylinder" pos="-0.151 0.033 .007" size=".003 .001" material="machined_material" />
+      <geom name="inspection_stage_end_1" type="box" pos="0.151 0 .012" size=".009 .035 .009" material="steel_material" />
+      <geom name="inspection_stage_screw_1_0" type="cylinder" pos="0.151 -0.033 .007" size=".003 .001" material="machined_material" />
+      <geom name="inspection_stage_screw_1_1" type="cylinder" pos="0.151 0.033 .007" size=".003 .001" material="machined_material" />
+    </body>
+    <body name="camera_stand">
+      <geom name="stand_top_clamp" type="box" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -.34 .763" size=".067 .070 .008" />
+      <geom name="stand_clamp_spine" type="box" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -.412 .727" size=".027 .012 .043" />
+      <geom name="stand_lower_clamp" type="box" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -.365 .694" size=".040 .047 .010" />
+      <geom name="stand_clamp_screw" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="-0.43 -.36 .668 -0.43 -.36 .706" size=".008" />
+      <geom name="stand_clamp_handle" type="cylinder" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -.36 .668" size=".023 .006" />
+      <geom name="stand_column" type="box" material="extrusion_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -0.32 0.876615347826174" size=".020 .020 0.10561534782617393" />
+      <geom name="stand_column_slot_-1" type="box" material="slot_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.4502 -0.32 0.876615347826174" size=".0004 .004 0.09561534782617394" />
+      <geom name="stand_column_slot_1" type="box" material="slot_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.4098 -0.32 0.876615347826174" size=".0004 .004 0.09561534782617394" />
+      <geom name="stand_fore_aft_rail" type="box" material="extrusion_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -0.6122717902673346 0.9822306956523479" size=".018 0.2922717902673345 .018" />
+      <geom name="stand_fore_aft_slot" type="box" material="slot_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.4118 -0.6122717902673346 0.9822306956523479" size=".0004 0.2822717902673345 .003" />
+      <geom name="stand_cross_rail" type="box" material="extrusion_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.2257775 -0.9045435805346691 0.9822306956523479" size="0.2042225 .018 .018" />
+      <geom name="stand_cross_rail_slot" type="box" material="slot_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.2257775 -0.9227435805346691 0.9822306956523479" size="0.1942225 .0004 .003" />
+      <geom name="stand_height_carriage" type="box" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -0.32 0.9822306956523479" size=".027 .028 .027" />
+      <geom name="stand_elbow_carriage" type="box" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.43 -0.9045435805346691 0.9822306956523479" size=".027 .027 .027" />
+      <geom name="stand_lock_screw_0" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="-0.40499999999999997 -0.32 0.9822306956523479 -0.388 -0.32 0.9822306956523479" size=".004" />
+      <geom name="stand_lock_knob_0" type="cylinder" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="-0.392 -0.32 0.9822306956523479 -0.382 -0.32 0.9822306956523479" size=".015" />
+      <geom name="stand_lock_screw_1" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="-0.40499999999999997 -0.9045435805346691 0.9822306956523479 -0.388 -0.9045435805346691 0.9822306956523479" size=".004" />
+      <geom name="stand_lock_knob_1" type="cylinder" material="black_anodized" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="-0.392 -0.9045435805346691 0.9822306956523479 -0.382 -0.9045435805346691 0.9822306956523479" size=".015" />
+      <geom name="stand_ball_head_socket" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="-0.021554999999999998 -0.9045435805346691 0.9822306956523479 -0.021554999999999998 -0.8645435805346691 0.9822306956523479" size=".010" />
+      <geom name="stand_base_bolt_0" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.48 -0.385 .773" size=".004 .002" />
+      <geom name="stand_base_bolt_1" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.38 -0.385 .773" size=".004 .002" />
+      <geom name="stand_base_bolt_2" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.48 -0.29500000000000004 .773" size=".004 .002" />
+      <geom name="stand_base_bolt_3" type="cylinder" material="steel_material" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.38 -0.29500000000000004 .773" size=".004 .002" />
+    </body>
+    <body name="iphone" mocap="true" pos="-0.021554999999999998 -0.81858186691215873 1.0119764773849289" quat="0.78820543801610921 0.61541220940263575 0 0">
+      <geom name="iphone_shell" mass="0" density="0" contype="0" conaffinity="0" group="2" type="mesh" mesh="iphone_shell_mesh" rgba="0.42 0.44 0.47 1" />
+      <geom name="iphone_shell_bounds" mass="0" density="0" contype="0" conaffinity="0" group="2" type="box" size="0.035925 0.075005 0.004375" rgba="0 0 0 0" />
+      <geom name="iphone_screen" mass="0" density="0" contype="0" conaffinity="0" group="2" type="mesh" mesh="iphone_screen_mesh" pos="0 0 0.004425" rgba="0.018 0.026 0.04 1" />
+      <geom name="iphone_plateau" mass="0" density="0" contype="0" conaffinity="0" group="2" type="mesh" mesh="iphone_plateau_mesh" pos="0 0.051015 -0.00565" rgba="0.36 0.38 0.41 1" />
+      <geom name="iphone_ultra_wide_rim" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="0.021555 0.060635 -0.007865" size="0.0081 0.00094" rgba="0.16 0.17 0.19 1" />
+      <geom name="iphone_ultra_wide_lens" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="0.021555 0.060635 -0.008755" size="0.00729 5e-05" rgba="0.018 0.045 0.072 1" />
+      <geom name="iphone_wide_rim" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="0.021555 0.041395 -0.007865" size="0.0081 0.00094" rgba="0.16 0.17 0.19 1" />
+      <geom name="iphone_wide_lens" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="0.021555 0.041395 -0.008755" size="0.00729 5e-05" rgba="0.018 0.045 0.072 1" />
+      <geom name="iphone_telephoto_rim" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="0.003565 0.051015 -0.007865" size="0.0081 0.00094" rgba="0.16 0.17 0.19 1" />
+      <geom name="iphone_telephoto_lens" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="0.003565 0.051015 -0.008755" size="0.00729 5e-05" rgba="0.018 0.045 0.072 1" />
+      <geom name="iphone_flash" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="-0.022105 0.061185 -0.006935" size="0.0034 1e-05" rgba="0.88 0.88 0.78 1" />
+      <geom name="iphone_lidar" mass="0" density="0" contype="0" conaffinity="0" group="2" type="cylinder" pos="-0.022105 0.040845 -0.006935" size="0.003325 1e-05" rgba="0.025 0.025 0.03 1" />
+      <camera name="iphone_camera" mode="fixed" sensorsize="640 480" resolution="640 480" focalpixel="544 544" principalpixel="0 0" pos="0.021554999999999998 0.041395 -0.008805" quat="1.0 0.0 0.0 0.0" />
+      <site name="iphone_optical_center" pos="0.021554999999999998 0.041395 -0.008805" size=".003" rgba=".1 .8 1 .4" group="3" />
+      <geom name="iphone_mount_backplate" type="box" rgba=".095 .11 .13 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="0 -0.040005 0.0073750000000000005" size="0.041925 .022 .003" />
+      <geom name="iphone_mount_lower_shelf" type="box" rgba=".095 .11 .13 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="0 -0.078005 0" size="0.041925 .003 0.010375" />
+      <geom name="iphone_mount_jaw_left" type="box" rgba=".095 .11 .13 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.038925 -0.040005 0" size=".003 .024 .008" />
+      <geom name="iphone_mount_pad_left" type="box" rgba=".025 .03 .035 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="-0.036525 -0.040005 0" size=".0006 .019 0.0053750000000000004" />
+      <geom name="iphone_mount_jaw_right" type="box" rgba=".095 .11 .13 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="0.038925 -0.040005 0" size=".003 .024 .008" />
+      <geom name="iphone_mount_pad_right" type="box" rgba=".025 .03 .035 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="0.036525 -0.040005 0" size=".0006 .019 0.0053750000000000004" />
+      <geom name="iphone_mount_adjustment_screw" type="cylinder" rgba=".45 .48 .51 1" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="0.038925 -0.040005 0 0.057925 -0.040005 0" size=".003" />
+      <geom name="iphone_mount_adjustment_knob" type="cylinder" rgba=".095 .11 .13 1" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="0.055925 -0.040005 0 0.063925 -0.040005 0" size=".011" />
+      <geom name="iphone_mount_stem" type="cylinder" rgba=".42 .45 .48 1" mass="0" density="0" contype="0" conaffinity="0" group="2" fromto="0 -0.040005 0.010375 0 -0.040005 0.037375000000000005" size=".008" />
+      <geom name="iphone_mount_ball" type="sphere" rgba=".30 .33 .36 1" mass="0" density="0" contype="0" conaffinity="0" group="2" pos="0.0 -0.040005 0.037375000000000005" size=".014" />
     </body>
   </worldbody>
+  <actuator>
+    <position name="inspection_slide_drive" joint="inspection_slide" kp="900" kv="40" ctrllimited="true" ctrlrange="-.08 .08" forcelimited="true" forcerange="-20 20" />
+  </actuator>
+  <contact>
+    <!--The slide joint models the carriage bearings; suppress the solid guide-rod housing interface.-->
+    <exclude body1="inspection_part" body2="inspection_stage" />
+  </contact>
 </mujoco>

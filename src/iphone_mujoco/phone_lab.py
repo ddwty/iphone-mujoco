@@ -194,7 +194,7 @@ def run_phone_lab(args, *, initial_keys=()):
         overview_option.geomgroup[5] = 1
         session = "phone-lab-" + uuid.uuid4().hex
         started = last_physics_wall = time.monotonic()
-        print("Virtual iPhone lab ready. Arrows move; Q/E height; J/L yaw; I/K tilt; 1 overview; 2 lens; P capture; R reset; B scan; Esc close.", flush=True)
+        print("Inspection bench ready. Arrows edit camera pose; Q/E height; J/L yaw; I/K tilt; 1 overview; 2 lens; P capture; R reset; B stage sweep; Esc close.", flush=True)
         try:
             while (args.duration <= 0 or time.monotonic() - started < args.duration) and (viewer is None or viewer.is_running()):
                 iteration_started = time.monotonic()
@@ -207,6 +207,7 @@ def run_phone_lab(args, *, initial_keys=()):
                             capture = True
                         elif key == ord("R"):
                             automatic = False
+                            data.ctrl[model.actuator("inspection_slide_drive").id] = 0.
                             sensor.set_world_pose(data, initial_pose, move_body=True)
                         elif key == ord("B"):
                             automatic = not automatic
@@ -224,10 +225,8 @@ def run_phone_lab(args, *, initial_keys=()):
                                 automatic = False
                                 sensor.set_world_pose(data, pose, move_body=True)
                     if automatic:
-                        pose = initial_pose.copy()
                         elapsed = time.monotonic() - started
-                        pose[0, 3] += .12 * np.sin(elapsed * .6)
-                        sensor.set_world_pose(data, pose, move_body=True)
+                        data.ctrl[model.actuator("inspection_slide_drive").id] = .065 * np.sin(elapsed * .7)
                     steps = max(1, min(125, round((iteration_started-last_physics_wall) / model.opt.timestep)))
                     mujoco.mj_step(model, data, nstep=steps)
                     last_physics_wall = iteration_started
@@ -265,7 +264,7 @@ def run_phone_lab(args, *, initial_keys=()):
                     valid = np.isfinite(frame.depth_m)
                     depth_text = f"{np.nanmin(frame.depth_m):.2f}-{np.nanmax(frame.depth_m):.2f} m" if valid.any() else "no return"
                     viewer.set_texts([(mujoco.mjtFont.mjFONT_SHADOW, mujoco.mjtGridPos.mjGRID_TOPLEFT,
-                                       "iPhone MuJoCo | Virtual iPhone\nArrows  Move phone\nQ / E    Down / Up\nJ / L    Yaw\nI / K    Tilt\n1 / 2    Overview / Lens\nP         Save RGB-D\nR / B    Reset / Scan\nV / F    Views / Frustum",
+                                       "iPhone MuJoCo | Inspection bench\nArrows  Camera pose\nQ / E    Down / Up\nJ / L    Yaw\nI / K    Tilt\n1 / 2    Overview / Lens\nP         Save RGB-D\nR / B    Reset / Stage sweep\nV / F    Views / Frustum",
                                        f"Frame {rendered}\nRGB {calibration.width}x{calibration.height}\nDepth {frame.depth_m.shape[1]}x{frame.depth_m.shape[0]}\n{depth_text}\n\n{last_capture_path}")])
                     viewer.sync()
                 if args.headless:

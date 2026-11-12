@@ -40,12 +40,6 @@ def _camera_configuration(args):
     if not isinstance(values, dict):
         raise ValueError("Camera profile must be a JSON object")
     bound = values.get("schema") == "iphone_mujoco.camera_configuration"
-    requested = any(getattr(args, key, None) is not None
-                    for key in ("lens", "zoom", "resolution", "depth_resolution", "region"))
-    if device is None and not bound and not requested:
-        if getattr(args, "payload", False):
-            raise ValueError("--payload requires --device or a device-bound --profile")
-        return None
     device = device or (values["device_id"] if bound else "iphone-17-pro")
     previous = values.get("calibration", values)
     resolution = getattr(args, "resolution", None) or (previous.get("width", 640), previous.get("height", 480))
@@ -509,7 +503,7 @@ def main(argv=None):
     lab.add_argument("--fps", type=float, default=10., help="Maximum preview refresh rate")
     lab.add_argument("--headless", action="store_true", help="Save a single rendered RGB-D example without opening a viewer")
     lab.add_argument("--output", help="Snapshot directory; P saves a new capture inside it")
-    lab.add_argument("--scan", action="store_true", help="Move the virtual phone slowly across the scene")
+    lab.add_argument("--scan", action="store_true", help="Run the motorized inspection-stage sweep")
     from .phone_lab import run_phone_lab
     lab.set_defaults(func=run_phone_lab)
     export_lab = sub.add_parser("export-lab", help="Export a standalone MuJoCo scene plus reusable iPhone module")
@@ -523,14 +517,14 @@ def main(argv=None):
         print(export_phone_lab(args.output, calibration, configuration=configuration))
     export_lab.set_defaults(func=export_lab_command)
     models = sub.add_parser("models", help="List or download the supported robot models")
-    models.add_argument("--fetch", choices=("panda", "ur5e"))
+    models.add_argument("--fetch", choices=("panda", "ur5e", "tiago"))
     models.add_argument("--model-cache")
     def models_command(args):
         from .robots import fetch_menagerie, list_robots
         if args.fetch:
             print(fetch_menagerie(args.fetch, cache_dir=args.model_cache))
         else:
-            print(list_robots())
+            print(tuple(list_robots()) + ("tiago",))
     models.set_defaults(func=models_command)
     def robot_options(command):
         command.add_argument("--robot", default="panda", help="panda (default), ur5e, or custom adapter JSON")
@@ -569,6 +563,20 @@ def main(argv=None):
     wrist_input.add_argument("--input-episode", help="Drive the robot with a previously recorded teleoperation episode")
     from .wrist import capture_command
     wrist.set_defaults(func=capture_command)
+    mobile = sub.add_parser("capture-mobile", help="Drive PAL TIAGo through wheel servos and record RGB-D, encoders and poses")
+    _camera_options(mobile)
+    mobile.add_argument("--robot", choices=("tiago",), default="tiago")
+    mobile.add_argument("--profile", help="Runtime camera calibration or bound device profile")
+    mobile.add_argument("--model-cache")
+    mobile.add_argument("--output", required=True)
+    mobile.add_argument("--headless", action="store_true")
+    mobile.add_argument("--duration", type=float, default=8.)
+    mobile.add_argument("--fps", type=float, default=15.)
+    mobile.add_argument("--motion", choices=("route", "straight", "hold"), default="route")
+    mobile.add_argument("--linear-speed", type=float, default=.18, help="Forward speed in m/s, bounded by the controller")
+    mobile.add_argument("--angular-speed", type=float, default=.35, help="Yaw rate in rad/s, bounded by the controller")
+    from .experiments import capture_mobile_command
+    mobile.set_defaults(func=capture_mobile_command)
     cal = sub.add_parser("calibrate", help="Save actual per-frame iPhone intrinsics")
     cal.add_argument("--ip", required=True)
     cal.add_argument("--device", help="Bind the AR main-camera calibration to a catalog iPhone ID")
@@ -611,14 +619,15 @@ def main(argv=None):
     export.add_argument("--overwrite", action="store_true", help="Replace this generated XML and calibration sidecar")
     export.set_defaults(func=export_phone)
     args = parser.parse_args(argv)
-    for name in ("duration", "fps", "speed", "translation_scale", "depth_scale", "timeout"):
+    for name in ("duration", "fps", "speed", "translation_scale", "depth_scale", "timeout", "linear_speed", "angular_speed"):
         value = getattr(args, name, None)
         if value is None:
             continue
         if not math.isfinite(value):
             parser.error(f"--{name.replace('_', '-')} must be finite")
-        if (name == "duration" and value < 0) or (name != "duration" and value <= 0):
-            qualifier = "nonnegative" if name == "duration" else "positive"
+        nonnegative = name in {"duration", "linear_speed", "angular_speed"}
+        if (nonnegative and value < 0) or (not nonnegative and value <= 0):
+            qualifier = "nonnegative" if nonnegative else "positive"
             parser.error(f"--{name.replace('_', '-')} must be {qualifier}")
     if getattr(args, "steps", 0) < 0:
         parser.error("--steps must be nonnegative")

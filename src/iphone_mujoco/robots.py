@@ -22,6 +22,7 @@ import numpy as np
 ASSETS = Path(__file__).parent / "assets" / "robots"
 MENAGERIE_COMMIT = "cda5236f98383f6fbaa4820c6b18dba892cd087f"
 MENAGERIE_REPOSITORY = "google-deepmind/mujoco_menagerie"
+TIAGO_MENAGERIE_COMMIT = "370c43965323c0944b433b202aac5058b5f907a9"
 
 
 def default_model_cache() -> Path:
@@ -32,6 +33,19 @@ def default_model_cache() -> Path:
     canonical = Path(".cache/iphone_mujoco/menagerie")
     previous = Path(".cache") / ("asmagic" + "_mujoco") / "menagerie"
     return (previous if previous.is_dir() and not canonical.exists() else canonical).resolve()
+
+
+def _cache_for_model(name: str, cache_dir=None) -> Path:
+    if cache_dir is not None:
+        return Path(cache_dir).expanduser().absolute()
+    cache = default_model_cache()
+    if os.environ.get("IPHONE_MUJOCO_MODEL_CACHE") or os.environ.get("ASMAGIC_MUJOCO_MODEL_CACHE"):
+        return cache
+    directory = {"panda": "franka_emika_panda", "ur5e": "universal_robots_ur5e", "tiago": "pal_tiago"}.get(name)
+    previous = (Path(".cache") / ("asmagic" + "_mujoco") / "menagerie").resolve()
+    if directory and not (cache / directory).exists() and (previous / directory).is_dir():
+        return previous
+    return cache
 
 
 @dataclass(frozen=True)
@@ -89,7 +103,7 @@ def list_robots() -> tuple[str, ...]:
 
 
 def get_robot(name: str, model_cache: Path | str | None = None) -> RobotSpec:
-    cache = Path(model_cache).expanduser().resolve() if model_cache is not None else default_model_cache()
+    cache = _cache_for_model(name, model_cache)
     if name == "ur5e":
         return RobotSpec(name, cache / "universal_robots_ur5e/ur5e.xml",
                          ("shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"),
@@ -131,15 +145,16 @@ def fetch_menagerie(name: str, cache_dir: Path | str | None = None, *, workers: 
     Git object hashes come from the pinned upstream Git tree; they establish
     asset identity, not the physical accuracy of the original robot model.
     """
-    if name not in ("ur5e", "panda"):
-        raise ValueError("Menagerie models: ur5e, panda")
+    if name not in ("ur5e", "panda", "tiago"):
+        raise ValueError("Menagerie models: ur5e, panda, tiago")
     manifest = json.loads((ASSETS / f"{name}_manifest.json").read_text())
-    if manifest["commit"] != MENAGERIE_COMMIT or manifest["repository"] != MENAGERIE_REPOSITORY:
+    commit = TIAGO_MENAGERIE_COMMIT if name == "tiago" else MENAGERIE_COMMIT
+    if manifest["commit"] != commit or manifest["repository"] != MENAGERIE_REPOSITORY:
         raise ValueError("Unexpected Menagerie manifest provenance")
-    cache = Path(cache_dir).expanduser().absolute() if cache_dir is not None else default_model_cache()
+    cache = _cache_for_model(name, cache_dir)
     root = _safe_destination(cache, manifest["directory"])
     root.mkdir(parents=True, exist_ok=True)
-    base = f"https://raw.githubusercontent.com/{MENAGERIE_REPOSITORY}/{MENAGERIE_COMMIT}/{manifest['directory']}/"
+    base = f"https://raw.githubusercontent.com/{MENAGERIE_REPOSITORY}/{commit}/{manifest['directory']}/"
 
     def fetch(item: dict[str, Any]) -> None:
         destination = _safe_destination(root, item["path"])
@@ -213,10 +228,8 @@ def load_scene(robot: str | RobotSpec = "panda", phone_xml: str | None = None, *
             raise ValueError(f"Missing TCP parent body: {spec.add_site_body}")
         ET.SubElement(body, "site", name=spec.site_name, pos=" ".join(map(str, spec.add_site_pos)), size="0.008", rgba="0.2 0.9 0.4 1")
     if spec.source != "custom":
-        ET.SubElement(world, "geom", name="asmagic_floor", type="plane", size="3 3 .1", rgba=".35 .39 .42 1")
-        ET.SubElement(world, "light", name="asmagic_light", pos="0 -2 3", dir="0 .5 -1", diffuse=".8 .8 .8")
-        ET.SubElement(world, "geom", name="reference_cube", type="box", pos=".5 .3 .05", size=".05 .05 .05", rgba=".8 .25 .12 1")
-        ET.SubElement(world, "geom", name="reference_sphere", type="sphere", pos=".4 -.25 .05", size=".05", rgba=".12 .45 .8 1")
+        from .workcells import add_arm_workcell
+        add_arm_workcell(root)
     if phone_xml:
         phone = ET.fromstring(phone_xml)
         if phone.tag == "body":

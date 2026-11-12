@@ -108,25 +108,28 @@ and metric-depth previews alongside the scene.
 | 1 / 2 | Overview / phone camera view |
 | P | Save RGB-D, calibration, pose and point clouds |
 | R | Reset the phone pose |
-| B | Toggle scanning motion |
+| B | Toggle inspection-stage sweep |
 | V / F | Toggle previews / frustum |
 
 Scroll to zoom and drag to change the overview. The phone pose determines the
 sensor view. Use `--profile profiles/my-iphone.json` to load a saved camera
-configuration. A run without camera options uses the demonstration calibration.
+configuration. Without camera options, the CLI uses the iPhone 17 Pro wide
+camera at 1× with its public-specification projection.
 
 ## Lab geometry
 
-The table is 1.10 m wide and 0.80 m deep. It holds a red cube, blue sphere,
-green cylinder, 40/80/120 mm steps, a checkerboard with 35 mm squares, a ruler
-with 100 mm spacing and an occluder.
+The 1.10 × 0.80 m inspection bench has a fixture plate, gauge block, flanged
+part, reflectance samples, 40/80/120 mm depth steps and an occluder. The
+checkerboard uses 35 mm squares; the ruler has 10 mm divisions and 100 mm
+major ticks. A position-controlled slide moves the inspection part through
+a 160 mm stroke.
 
 | Experiment | Procedure | Output to check |
 |---|---|---|
 | Projection and calibration | Detect checkerboard corners and calculate rays with K | Reprojection error, field of view and principal-point handling |
 | Depth geometry | Back-project the steps and objects into world coordinates | Scale, planes, distances and point coordinates |
-| Occlusion and fusion | Press B to scan and save multiple views | Depth edges, visible surfaces and registration input |
-| Object detection | Capture objects with known colors and shapes | Detector input, viewpoint coverage and visualization |
+| Occlusion and fusion | Move the virtual camera with the keys and save multiple views | Depth edges, visible surfaces and registration input |
+| Part inspection | Capture the machined part at successive stage positions | Part localization, stage-position ground truth and viewpoint coverage |
 
 Press P to create a capture in the local output directory.
 
@@ -154,22 +157,22 @@ Collect images, poses and scene state over time.
 python examples/scene_camera.py --scenario tabletop \
   --device iphone-17-pro --region cn --zoom 0.5 \
   --headless --duration 4 --fps 10 --output recordings/tabletop
-python examples/scene_camera.py --scenario mobile \
+iphone-mujoco capture-mobile --robot tiago --motion route \
   --profile profiles/iphone-17-pro-ultrawide.json \
-  --headless --duration 6 --fps 10 --output recordings/mobile
+  --linear-speed .18 --angular-speed .35 \
+  --headless --duration 8 --fps 15 --output recordings/mobile
 ```
 
 Omit `--headless` to open the viewer and use `mjpython` on macOS. The examples
 accept model/lens/zoom options, a bound configuration or bare calibration JSON.
 
-![Mobile platform with RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
+![TIAGo mobile robot with iPhone RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
 [PNG](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.png) · [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/mobile-camera.gif)
 
-The tabletop scene keeps the camera fixed while the target moves. The mobile
-scene moves the camera with the base along a preset trajectory.
-`states.jsonl` stores each optical pose and scene state. Mobile captures also
-include `world_from_base`.
+The inspection camera stays fixed while the slide servo moves the part. TIAGo
+follows wheel velocity commands through MuJoCo dynamics and floor contact.
+`states.jsonl` stores each optical pose and the state at that capture.
 
 ```text
 rgb/00000000.png        Lossless RGB
@@ -181,6 +184,92 @@ episode/                Replayable recording
 preview_points.ply      First-frame world point cloud
 run.json                Frame count, timing and run information
 ```
+
+## Mobile data and control
+
+The mobile scene uses PAL Robotics TIAGo from MuJoCo Menagerie. The pinned model
+retains the robot's meshes, joints and inertias. The upstream wheel velocity
+servos drive the base; position servos keep the upper body at its initial targets.
+The inspection area provides shelving, calibration markers and parts bins for
+repeatable RGB-D observations.
+
+```bash
+iphone-mujoco models --fetch tiago
+iphone-mujoco capture-mobile --robot tiago --device iphone-17-pro --region cn \
+  --motion straight --linear-speed .15 --angular-speed 0 \
+  --duration 5 --fps 15 --headless --output recordings/tiago-straight
+```
+
+Model assets are downloaded and checked on the first run; later runs use the
+cache. `--motion route` changes the commanded curvature over time.
+`--motion hold` commands zero wheel speed. These commands generate observations
+along a specified route; a navigation policy can supply its own velocity
+commands through the Python controller.
+
+```python
+from iphone_mujoco import MujocoRGBDCamera, configure_camera
+from iphone_mujoco.mobile import DifferentialDriveController, load_mobile_scene
+
+config = configure_camera("iphone-17-pro", region="cn", zoom=0.5)
+model, data, robot = load_mobile_scene(configuration=config)
+drive = DifferentialDriveController(model, data, robot,
+                                    linear_limit=0.25, angular_limit=0.6)
+drive.command(0.15, 0.2)  # m/s forward, rad/s counterclockwise
+with MujocoRGBDCamera(model, config.calibration) as camera:
+    for _ in range(100):
+        drive.step(0.02)
+        state = drive.state()
+        frame = camera.render(data)
+        points = frame.point_cloud(world=True)
+```
+
+`command(v, w)` sets the base twist; the controller converts it to left/right
+wheel targets. `step(dt)` advances physics and encoder odometry. Capture state
+and images before the next step to keep them at one simulation time.
+Loading advances 0.5 s of settling physics. `data.time` includes that warmup;
+use a collection epoch when scheduling by elapsed time.
+
+Use the scene recorder to save the controller's state with every RGB-D frame:
+
+```python
+from iphone_mujoco.experiments import SceneRGBDRecorder
+
+with SceneRGBDRecorder(model, data, config.calibration,
+                       "recordings/tiago-python",
+                       metadata={"robot": robot.name, "robot_source": robot.source,
+                                 "camera_configuration": config.to_dict()}) as recorder:
+    for _ in range(100):
+        drive.step(0.02)
+        frame = recorder.capture(drive.state())
+```
+
+The recorder owns image/state output; the caller owns commands and physics
+stepping. Read the saved controller fields from
+`frame.metadata["scene_state"]` when replaying the episode.
+
+| State field | Meaning |
+|---|---|
+| `command_twist` | Requested `linear_mps` and `angular_rps` |
+| `applied_twist` | Acceleration-limited twist used for wheel targets |
+| `wheel_position_rad` | Left/right wheel joint angles |
+| `wheel_velocity_rad_s` | Measured simulated wheel joint velocities |
+| `wheel_target_rad_s` | Left/right velocity-servo targets |
+| `wheel_odometry` | Encoder-integrated `x_m`, `y_m`, `yaw_rad` from the controller's starting pose |
+| `world_from_base` | Simulator ground-truth base pose, 4×4 |
+| `world_from_camera` | Simulator ground-truth CV optical pose, 4×4 |
+| `qpos`, `qvel`, `ctrl` | Native MuJoCo joint state and actuator control arrays |
+
+Wheel odometry and ground truth are separate estimates. The wheel trace comes
+from joint rotation; the world pose comes from the free-base dynamics. Use the
+two to measure slip and compare a visual-odometry estimate. Base axes are X
+forward, Y left, Z up. Camera axes are X right, Y down, Z forward. Distances are
+meters, angles are radians and frame timestamps are simulation seconds.
+
+The same scene is available through
+`iphone_mujoco.experiments.load_camera_scene("mobile", configuration=config)`;
+`examples/scene_camera.py --scenario mobile` delegates to that package API.
+Use the [developer guide](development.md) for recording and custom-scene
+integration.
 
 ## Export the complete scene
 
