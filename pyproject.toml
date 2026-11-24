@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{name = "iPhone MuJoCo contributors"}]
-dependencies = ["mujoco==3.5.0", "numpy>=1.24,<3", "Pillow>=10"]
+dependencies = ["mujoco==3.17.0", "numpy>=1.24,<3", "Pillow>=10"]
 keywords = ["mujoco", "iphone", "rgbd", "robotics", "teleoperation", "camera"]
 classifiers = [
   "Development Status :: 3 - Alpha",
