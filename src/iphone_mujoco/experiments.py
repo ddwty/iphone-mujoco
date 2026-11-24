@@ -121,8 +121,9 @@ def world_from_body(model, data, name):
 
 class SceneRGBDRecorder:
     """Capture RGB, optical Z depth and scene state from one physics state."""
-    def __init__(self, model, data, calibration, directory, *, camera_name="iphone_camera", metadata=None):
+    def __init__(self, model, data, calibration, directory, *, camera_name="iphone_camera", metadata=None, spatial=None):
         self.model, self.data = model, data
+        self.spatial = spatial
         self.directory = Path(directory)
         if self.directory.exists() and any(self.directory.iterdir()):
             raise FileExistsError(f"Choose a new or empty output directory: {self.directory}")
@@ -168,6 +169,8 @@ class SceneRGBDRecorder:
             if not np.isfinite(state[name]).all():
                 raise RuntimeError("Nonfinite scene state; refusing to record")
         frame.metadata.update(self.metadata, scene_state=state, simulation_time=float(self.data.time))
+        if self.spatial:
+            self.spatial.annotate(frame)
         self._writer.write(frame)
         stem = f"{self.count:08d}.png"
         Image.fromarray(frame.rgb).save(self.directory / "rgb" / stem)
@@ -191,11 +194,16 @@ class SceneRGBDRecorder:
 
 def collect_camera_episode(scenario, directory, *, configuration=None, calibration=None,
                            duration=8., fps=15., headless=False, scene=None, parent_body=None,
-                           mount=None, model_cache=None, motion="route", linear_speed=.18, angular_speed=.35):
+                           mount=None, model_cache=None, motion="route", linear_speed=.18, angular_speed=.35,
+                           spatial=False):
     """Record an actuated inspection/navigation scene or an existing MJCF."""
     if not np.isfinite([duration, fps]).all() or min(duration, fps) <= 0:
         raise ValueError("Duration and FPS must be finite and positive")
     configuration = _scene_configuration(calibration, configuration)
+    overlay = None
+    if spatial:
+        from .spatial import SpatialOverlay
+        overlay = SpatialOverlay(configuration)
     calibration = configuration.calibration
     directory = Path(directory)
     if directory.exists() and any(directory.iterdir()):
@@ -234,7 +242,7 @@ def collect_camera_episode(scenario, directory, *, configuration=None, calibrati
     metadata["simulation_start_time"] = epoch
     with ExitStack() as stack:
         recorder = stack.enter_context(SceneRGBDRecorder(model, data, calibration, directory,
-                                                         camera_name=camera_name, metadata=metadata))
+                                                         camera_name=camera_name, metadata=metadata, spatial=overlay))
         if configuration:
             configuration.save(Path(directory) / "device.json")
         viewer = None
@@ -255,6 +263,10 @@ def collect_camera_episode(scenario, directory, *, configuration=None, calibrati
                 state["world_from_target"] = world_from_body(model, data, "inspection_part")
             frame = recorder.capture(state)
             if viewer:
+                if overlay:
+                    with viewer.lock():
+                        viewer.user_scn.ngeom = 0
+                        overlay.append(viewer.user_scn, frame)
                 update_rgbd_preview(viewer, frame)
                 viewer.sync()
                 time.sleep(max(0., min(.05, start + float(data.time)-epoch - time.monotonic())))
@@ -272,5 +284,6 @@ def capture_mobile_command(args):
     result = collect_camera_episode("mobile", args.output, configuration=configuration,
                                     duration=args.duration, fps=args.fps, headless=args.headless,
                                     model_cache=args.model_cache, motion=args.motion,
-                                    linear_speed=args.linear_speed, angular_speed=args.angular_speed)
+                                    linear_speed=args.linear_speed, angular_speed=args.angular_speed,
+                                    spatial=getattr(args, "spatial", False))
     print(json.dumps({key: result[key] for key in ("robot", "frames", "simulation_seconds")}, indent=2))

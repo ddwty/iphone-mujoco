@@ -504,6 +504,7 @@ def main(argv=None):
     lab.add_argument("--headless", action="store_true", help="Save a single rendered RGB-D example without opening a viewer")
     lab.add_argument("--output", help="Snapshot directory; P saves a new capture inside it")
     lab.add_argument("--scan", action="store_true", help="Run the motorized inspection-stage sweep")
+    lab.add_argument("--spatial", action="store_true", help="Use asDevice placement and asTriad overview frames (requires [spatial])")
     from .phone_lab import run_phone_lab
     lab.set_defaults(func=run_phone_lab)
     export_lab = sub.add_parser("export-lab", help="Export a standalone MuJoCo scene plus reusable iPhone module")
@@ -549,6 +550,7 @@ def main(argv=None):
     wrist.add_argument("--profile", help="Calibration or device configuration JSON; --device uses published optical presets")
     wrist.add_argument("--mount", help="Measured parent-link <- CV camera mount JSON; default is a demo mount")
     wrist.add_argument("--show-phone", action="store_true", help="Show the mounted phone and flange support")
+    wrist.add_argument("--spatial", action="store_true", help="Record asDevice poses and show asTriad overview frames (requires [spatial])")
     wrist.add_argument("--output", required=True, help="New dataset directory")
     wrist.add_argument("--duration", type=float, default=10., help="Simulation seconds; 0 runs until stopped")
     wrist.add_argument("--fps", type=float, default=30., help="Frames per simulation second")
@@ -564,6 +566,7 @@ def main(argv=None):
     from .wrist import capture_command
     wrist.set_defaults(func=capture_command)
     mobile = sub.add_parser("capture-mobile", help="Drive PAL TIAGo through wheel servos and record RGB-D, encoders and poses")
+    mobile.add_argument("--spatial", action="store_true", help="Record asDevice poses and show asTriad overview frames (requires [spatial])")
     _camera_options(mobile)
     mobile.add_argument("--robot", choices=("tiago",), default="tiago")
     mobile.add_argument("--profile", help="Runtime camera calibration or bound device profile")

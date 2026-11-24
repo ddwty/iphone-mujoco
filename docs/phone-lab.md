@@ -3,6 +3,10 @@
 Collect RGB-D, intrinsics and optical poses from the virtual iPhone's named
 camera. Simulation and real-phone inputs share the `RGBDFrame` interface.
 
+The overview renders use asTriad world/device/optical frames and asDevice's
+screen-plane 01 reference. Enable the same integration with `phone-lab --spatial`;
+see [device placement](spatial-frames.md) for installation and Python usage.
+
 [![Camera lab with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
 [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)

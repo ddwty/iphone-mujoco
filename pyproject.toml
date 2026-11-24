@@ -28,6 +28,10 @@ classifiers = [
 [project.optional-dependencies]
 live = ["asmagic>=1.0.1,<2", "pyzmq>=25"]
 dev = ["pytest>=8", "build>=1"]
+spatial = [
+  "asTriad @ git+https://github.com/asMagicApp/asTraid.git@0243a4a96e001bc47917ac9690058befb4f0d8fa",
+  "asDevice @ git+https://github.com/ddwty/asDevice.git@8f9f94f5eaa1921c90dca5340980d41fa22bdd4d#subdirectory=python",
+]
 
 [project.scripts]
 iphone-mujoco = "iphone_mujoco.cli:main"

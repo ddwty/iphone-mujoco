@@ -252,13 +252,14 @@ class WristRGBDRecorder:
     """
     def __init__(self, model, data, spec, mount: WristCameraMount,
                  calibration: CameraCalibration, directory, *, depth_scale: float = 0.0001,
-                 configuration: CameraConfiguration | None = None):
+                 configuration: CameraConfiguration | None = None, spatial=None):
         quantize_depth(np.zeros((1, 1)), depth_scale)
         self.model, self.data, self.spec = model, data, spec
         self.mount, self.calibration = mount, calibration
         if configuration is not None and configuration.calibration != calibration:
             raise ValueError("Wrist calibration must match the selected camera configuration")
         self.configuration = configuration.to_dict() if configuration is not None else None
+        self.spatial = spatial
         self.directory = Path(directory)
         if self.directory.exists() and any(self.directory.iterdir()):
             raise FileExistsError(f"Recording directory must be new or empty: {self.directory}")
@@ -329,6 +330,8 @@ class WristRGBDRecorder:
                                "robot_state": state})
         if self.configuration is not None:
             frame.metadata["camera_configuration"] = self.configuration
+        if self.spatial:
+            self.spatial.annotate(frame)
         stem = f"{self.count:08d}"
         Image.fromarray(frame.rgb).save(self.directory / "rgb" / (stem + ".png"))
         Image.fromarray(encoded).save(self.directory / "depth" / (stem + ".png"))
@@ -411,6 +414,10 @@ def capture_command(args):
     controller = CartesianTeleoperator(model, data, phone_to_world=np.eye(3),
                                       translation_scale=args.translation_scale, **spec.controller_kwargs)
     recorder = None
+    spatial = None
+    if getattr(args, "spatial", False):
+        from .spatial import SpatialOverlay
+        spatial = SpatialOverlay(configuration)
     started = time.monotonic()
     physics_steps = input_count = 0
     try:
@@ -418,7 +425,7 @@ def capture_command(args):
             viewer = _viewer(stack, model, data, args.headless)
             recorder = stack.enter_context(WristRGBDRecorder(model, data, spec, mount, calibration,
                                                             args.output, depth_scale=args.depth_scale,
-                                                            configuration=configuration))
+                                                            configuration=configuration, spatial=spatial))
             publisher = stack.enter_context(VirtualPhonePublisher(args.publish, depth_scale=args.depth_scale)) if args.publish else None
             source = None
             if args.ip:
@@ -458,6 +465,10 @@ def capture_command(args):
                         publisher.publish(frame)
                     next_capture += 1 / args.fps
                     if viewer:
+                        if spatial:
+                            with viewer.lock():
+                                viewer.user_scn.ngeom = 0
+                                spatial.append(viewer.user_scn, frame)
                         update_rgbd_preview(viewer, frame)
                         viewer.sync()
                 if not args.fast:

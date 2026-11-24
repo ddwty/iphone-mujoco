@@ -29,6 +29,7 @@ def main(argv=None):
     parser.add_argument("--fps", type=float, default=15.)
     parser.add_argument("--output", required=True)
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--spatial", action="store_true", help="Use asDevice poses and asTriad overview frames")
     args = parser.parse_args(argv)
     if args.scenario == "custom" and (not args.scene or not args.mount):
         parser.error("Custom scenes require --scene and --mount")
@@ -42,7 +43,7 @@ def main(argv=None):
             scene=args.scene, parent_body=args.parent_body,
             mount=WristCameraMount.load(args.mount) if args.mount else None,
             model_cache=args.model_cache, motion=args.motion,
-            linear_speed=args.linear_speed, angular_speed=args.angular_speed)
+            linear_speed=args.linear_speed, angular_speed=args.angular_speed, spatial=args.spatial)
     except (OSError, ValueError, RuntimeError) as error:
         parser.exit(1, str(error) + "\n")
     print(json.dumps({key: result[key] for key in ("frames", "simulation_seconds")}, indent=2))

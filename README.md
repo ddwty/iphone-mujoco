@@ -8,6 +8,11 @@ calibration and camera poses in replayable episodes.
 Real iPhone streams connect through the PyPI `asmagic` SDK.
 [Python SDK](https://pypi.org/project/asmagic/)
 
+The documentation renders use **asTriad** for world, device and optical XYZ
+frames, and **asDevice** for the iPhone's screen-plane 01 placement. See
+[device coordinates and rendering](docs/spatial-frames.md) to install the
+spatial integration and move the phone using a device-frame pose.
+
 [![MuJoCo phone laboratory with RGB and depth](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/phone-lab.gif)
 
 ## Installation

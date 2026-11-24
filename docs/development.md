@@ -11,6 +11,7 @@ legacy import aliases reference the same canonical classes.
 | `camera`, `geometry` | K, frame validation, projection, transforms and rendering |
 | `devices` | Sourced hardware catalog, regional mass and phone meshes |
 | `configuration` | Model/lens/zoom selection, projection source and bound calibration |
+| `spatial` | Optional asDevice placement, registered reference frames and asTriad overview decorations |
 | `profiles` | Calibration/provenance, MJCF assembly and portable module export |
 | `phone_scene`, `phone_lab` | Offline laboratory, interaction and snapshots |
 | `streams` | SDK adapters, local receipt state and independent freshness |
@@ -25,6 +26,38 @@ legacy import aliases reference the same canonical classes.
 The PyPI `asmagic` SDK provides ZeroMQ, Protobuf and JPEG/HEVC decoding.
 Additional sensor adapters use its public subscribers and declare their
 frames, units and clocks.
+
+## Device placement and coordinate rendering
+
+The optional `spatial` extra pins upstream asDevice and asTriad Git commits;
+neither library is copied into this package. `DevicePlacement` composes
+asDevice `Transform` and `DeviceFrames` with the existing camera configuration.
+Its model revisions are explicit (iPhone17Pro r5, other supported Pro models r1),
+with portrait axes matching the centred MJCF shell. Body → 01 adds half the
+nominal body thickness along screen-out +Z. Camera extrinsics remain the
+selected catalog cover-centre estimate or `metadata['phone_from_camera']`.
+asDevice's mechanical component axes do not replace optical CV axes or K.
+
+`phone-lab --spatial` interprets pose edits at device 01 and places the optical
+camera through `DevicePlacement.place_camera`. Sensor capture still uses the
+same configured K, optical Z depth and simulation clock. Supplemental
+`metadata['spatial_frames']` stores model/revision/orientation, mount provenance
+and world transforms for 01, 03 and the optical camera. Episode format/version,
+the original optical pose field, sender clocks and local receipt clocks are
+unchanged. Nominal frames do not supply live tracking or world registration.
+
+`capture-wrist --spatial`, `capture-mobile --spatial` and
+`examples/scene_camera.py --spatial` use the same adapter for same-state device
+poses and overview geoms. The wrist/scene recorders accept a `SpatialOverlay`
+through their optional `spatial` argument, annotating before writing the frame.
+
+`SpatialOverlay.append` calls actual asTriad `append_to_scene` after assembling
+the overview, reserving 876 visual slots for W/D01/C. It never modifies the
+MuJoCo model or sensor renderers. The media generator uses asTriad's public
+label anchors and a second overview camera for the phone detail; its PNG and
+GIF share the same rendered sequence. Per-animation JSON sidecars retain
+package versions, same-state device/optical poses and image hashes. Keep those
+sidecars with local validation outputs. See [reproduction](spatial-frames.md).
 
 ## Live SDK workflows
 

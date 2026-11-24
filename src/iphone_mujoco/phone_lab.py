@@ -154,6 +154,10 @@ def run_phone_lab(args, *, initial_keys=()):
     configuration = _camera_configuration(args)
     calibration = configuration.calibration if configuration else CameraCalibration.load(args.profile) if args.profile else demo_calibration()
     model, data = load_phone_lab(calibration, configuration=configuration)
+    spatial = None
+    if getattr(args, "spatial", False):
+        from .spatial import SpatialOverlay
+        spatial = SpatialOverlay(configuration)
     initial_pose = _optical_pose(model, data).copy()
     # The raw portable XML keeps group 2 for standard-viewer visibility. This
     # application explicitly shows group 5 only in its overview, hiding cosmetics
@@ -208,7 +212,10 @@ def run_phone_lab(args, *, initial_keys=()):
                         elif key == ord("R"):
                             automatic = False
                             data.ctrl[model.actuator("inspection_slide_drive").id] = 0.
-                            sensor.set_world_pose(data, initial_pose, move_body=True)
+                            if spatial:
+                                spatial.placement.place_camera(sensor, data, spatial.placement.world_from_device(initial_pose))
+                            else:
+                                sensor.set_world_pose(data, initial_pose, move_body=True)
                         elif key == ord("B"):
                             automatic = not automatic
                         elif key == ord("F"):
@@ -220,10 +227,16 @@ def run_phone_lab(args, *, initial_keys=()):
                             if key == ord("2"):
                                 viewer.cam.fixedcamid = model.camera("iphone_camera").id
                         else:
-                            pose = _move_phone(_optical_pose(model, data), key)
-                            if not np.array_equal(pose, _optical_pose(model, data)):
+                            current = _optical_pose(model, data)
+                            if spatial:
+                                current = spatial.placement.world_from_device(current)
+                            pose = _move_phone(current, key)
+                            if not np.array_equal(pose, current):
                                 automatic = False
-                                sensor.set_world_pose(data, pose, move_body=True)
+                                if spatial:
+                                    spatial.placement.place_camera(sensor, data, pose)
+                                else:
+                                    sensor.set_world_pose(data, pose, move_body=True)
                     if automatic:
                         elapsed = time.monotonic() - started
                         data.ctrl[model.actuator("inspection_slide_drive").id] = .065 * np.sin(elapsed * .7)
@@ -237,16 +250,23 @@ def run_phone_lab(args, *, initial_keys=()):
                                            "scene": "phone_lab", "phone_geometry": "catalog" if configuration else "approximate_visual_only"})
                     if configuration:
                         frame.metadata["camera_configuration"] = configuration.to_dict()
+                    if spatial:
+                        spatial.annotate(frame)
                     if viewer and viewer.user_scn is not None:
                         if show_frustum:
                             _frustum(viewer.user_scn, frame)
                         else:
                             viewer.user_scn.ngeom = 0
+                        if spatial and viewer.cam.type != mujoco.mjtCamera.mjCAMERA_FIXED:
+                            spatial.append(viewer.user_scn, frame)
                 rendered += 1
                 if capture:
                     scene_image = None
                     if overview:
                         overview.update_scene(data, camera="lab_overview", scene_option=overview_option)
+                        if spatial:
+                            # The frame is decorated only after the sensor captured RGB-D.
+                            spatial.append(overview.scene, frame)
                         scene_image = overview.render().copy()
                     index = captures
                     path = output / f"capture-{index:04d}"

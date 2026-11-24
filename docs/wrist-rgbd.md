@@ -4,6 +4,10 @@ Attach a camera rigidly to the robot's end link. Each RGB image, depth image,
 joint position, velocity and control sample comes from the same `mjData` state.
 Forward kinematics and the mount transform determine the camera world pose.
 
+Add `--spatial` after installing the spatial extra to record asDevice device 01
+and rear-frame poses and show actual asTriad XYZ frames in the overview.
+The PNG/GIF below uses the same adapter. See [device placement](spatial-frames.md).
+
 [![iPhone wrist camera with RGB-D](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.png)](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)
 
 [GIF](https://raw.githubusercontent.com/ddwty/iphone-mujoco/main/docs/images/robot-wrist.gif)

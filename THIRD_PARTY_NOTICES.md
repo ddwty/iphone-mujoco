@@ -11,6 +11,8 @@ relicense them.
 | NumPy | Geometry and array operations | BSD-3-Clause; [numpy/numpy](https://github.com/numpy/numpy) |
 | Pillow | PNG/JPEG and preview images | HPND/Pillow license; [python-pillow/Pillow](https://github.com/python-pillow/Pillow) |
 | `asmagic` | Optional live transport, schemas and codecs | MIT; [published SDK](https://pypi.org/project/asmagic/) |
+| asTriad | Optional XYZ overview geometry and public label anchors | MIT; [asMagicApp/asTraid](https://github.com/asMagicApp/asTraid) |
+| asDevice | Optional registered device frames and rigid transforms | Separately installed from [ddwty/asDevice](https://github.com/ddwty/asDevice); upstream repository terms apply |
 | MuJoCo Menagerie Panda assets | Franka Emika Panda MJCF and meshes | Apache-2.0; upstream model LICENSE |
 | MuJoCo Menagerie UR5e assets | Universal Robots UR5e MJCF and meshes | BSD-3-Clause, ROS Industrial Consortium; upstream model LICENSE |
 | MuJoCo Menagerie TIAGo assets | PAL Robotics TIAGo MJCF, meshes, joints and inertias | Apache-2.0; upstream model LICENSE |
